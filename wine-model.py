@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 ###
 ### Wine-Model v 1.2
@@ -63,11 +62,11 @@ useAlternativeAppMaker = True
 minUserApps, maxUserApps = 1, 10 
 # Set this to True to prevent making the wine-model.log file (the chart will still be made)
 dontLog = False
-print "Modeling with", numberOfBugs, "bugs,", numberOfApps, "apps, and", numberOfUsers, "users"
+print("Modeling with", numberOfBugs, "bugs,", numberOfApps, "apps, and", numberOfUsers, "users")
 if not useAlternativeAppMaker:
-    print "From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user"
+    print("From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user")
 else:
-    print "Using relative probabilities for individual bugs and from", minUserApps, "to", maxUserApps, "apps per user"
+    print("Using relative probabilities for individual bugs and from", minUserApps, "to", maxUserApps, "apps per user")
 
 chartTitle = "Simulated model of Wine development" # Appears at the top of the chart produced at the end
 ###
@@ -76,9 +75,9 @@ chartTitle = "Simulated model of Wine development" # Appears at the top of the c
 ## bugDifficulty is the number of days it takes to solve a bug.
 ## When a bug is worked on, it's difficulty is reduced by one until it is 0, so some bugs need to be "solved" (worked on) multiple times.
 # Set all to 1 to have all bugs be equally difficult.
-#bugDifficulty = dict( (x,1) for x in xrange(numberOfBugs) ) 
+#bugDifficulty = dict( (x,1) for x in range(numberOfBugs) ) 
 ## Here, a positive, almost normally distributed number of days per bug.  Average is just under 5 days per bug, with about 10% taking only 1 day.
-bugDifficulty = dict( (x, abs(int(random.normalvariate(4,3))) + 1) for x in xrange(numberOfBugs) )  
+bugDifficulty = dict( (x, abs(int(random.normalvariate(4,3))) + 1) for x in range(numberOfBugs) )  
 ###
 
 ### Relative probability of bugs and applications
@@ -86,21 +85,21 @@ bugDifficulty = dict( (x, abs(int(random.normalvariate(4,3))) + 1) for x in xran
 ## if useAlternativeAppMaker = True, then the minAppBugs and maxAppBugs variables are ignored.  Instead, the highest number in bugProbability is interpretted as 100% and will affect all apps; meanwhile lower numbers will be proportionately less likely to affect an app.  So if bugProbability = [1, 2, 4], then the third bug will affect all apps, the second bug will have a 50% chance of affecting any particular app, and the first bug will have a 25% chance.
 ## appProbability, meanwhile, is the relative probability that that application will be listed on a user.  Thus the most popular application will have a higher number.
 # Try pareto-distribution probability.  The 2.2 number was more or less pulled from a hat based on the intuition that a typical bug is about 60 times less likely than the most common bug
-#bugProbability = [random.paretovariate(2.2) for x in xrange(numberOfBugs)]
+#bugProbability = [random.paretovariate(2.2) for x in range(numberOfBugs)]
 
 # use this guy for Vince's idea of "most apps should have one or two bugs that only affect them" -- have useAlternativeAppMaker = True
-#bugProbability = [numberOfApps] + [1 for x in xrange(numberOfApps)] + ... # make the relative probability always between 1 and number of Apps, so on average all the "1" bugs will affect one app
+#bugProbability = [numberOfApps] + [1 for x in range(numberOfApps)] + ... # make the relative probability always between 1 and number of Apps, so on average all the "1" bugs will affect one app
 # TODO: implement "80/20" rule here, think about what it means a bit
 # 80/20 rule: make 100 max.  Then last 80% can be 20, and first 20% can be 80...
-bugProbability = [1.0/sqrt(x+1) for x in xrange(numberOfBugs)] # zipfs law
+bugProbability = [1.0/sqrt(x+1) for x in range(numberOfBugs)] # zipfs law
 # 
 
-appProbability = [random.paretovariate(2.2) for x in xrange(numberOfApps)]
+appProbability = [random.paretovariate(2.2) for x in range(numberOfApps)]
 ###
 
 totalTimeToSolve = sum(bugDifficulty.values())
 
-print totalTimeToSolve, "total days to solve every bug, an average of", float(totalTimeToSolve)/numberOfBugs, "days per bug."
+print(totalTimeToSolve, "total days to solve every bug, an average of", float(totalTimeToSolve)/numberOfBugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
 def pick_strategy(day, allowPrevious=True):
@@ -162,7 +161,7 @@ if not dontLog:
         finally:
             logfile.close()
     except IOError: #cannot open file, don't log
-        print "Cannot open log file"
+        print("Cannot open log file")
         dontLog = True
         pass
 ###
@@ -184,7 +183,7 @@ def alternative_make_app(probability, bugs=False):
 
     maxProbability = max(probability)
     appBugs = set([]) # There should be no duplicates, and order doesn't matter, so a set is faster than a list here
-    for x in xrange(possibleBugs):
+    for x in range(possibleBugs):
         if random.uniform(0, maxProbability) <= probability[x]: #roll the dice
             appBugs.add(x)
     return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.    
@@ -205,7 +204,7 @@ def make_app(probability, bugs):
 
     maxProbability = max(probability)
     appBugs = set([]) # There should be no duplicates, and order doesn't matter, so a set is faster than a list here
-    for x in xrange(bugs):
+    for x in range(bugs):
         while(True):
             thisBug = random.randint(0,possibleBugs - 1) #consider a bug.  We subtract 1 here due to the len command.
             if (thisBug not in appBugs) and random.uniform(0, maxProbability) <= probability[thisBug]: #roll the dice, but only if this is a new bug
@@ -327,7 +326,7 @@ def sum_bugs (numberOfBugs, apps):
         numberOfBugs, an integer showing total number of bugs
         apps: here we assume that everything in x is an iterable
     """
-    bugSums = [0 for x in xrange(numberOfBugs)]
+    bugSums = [0 for x in range(numberOfBugs)]
     for x in apps:
         if apps[x] != True:  # In case apps has been passed to check_apps before summing here
             for y in apps[x]: # for every bug this app affects...
@@ -444,11 +443,11 @@ def append_to_log(entry):
 ###
 
 if useAlternativeAppMaker:
-    apps = dict( (x, alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = dict( (x, alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in range(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 else:
-    apps = dict( (x, make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = dict( (x, make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in range(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 
-users = dict( (x, make_app(appProbability, random.randint(minUserApps,maxUserApps))) for x in xrange(numberOfUsers) ) #Users will have from minUserApps to maxUserApps, uniformly distributed
+users = dict( (x, make_app(appProbability, random.randint(minUserApps,maxUserApps))) for x in range(numberOfUsers) ) #Users will have from minUserApps to maxUserApps, uniformly distributed
 
 priority = bug_popularity(sum_bugs(numberOfBugs, apps)) #for speeding up the pickMostPopular function
 reverseBugDifficulty = {} #for speeding up the pick_easiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)
@@ -460,7 +459,7 @@ for x in bugDifficulty:
 
 averageBugsPerApp = float(sum([len(apps[x]) for x in apps])) / numberOfApps
 averageAppsPerUser = float(sum([len(users[x]) for x in users])) / numberOfUsers
-print "Applications and users generated, averaging", averageBugsPerApp ,"bugs per app and", averageAppsPerUser ,"apps per user.  Starting simulation..."
+print("Applications and users generated, averaging", averageBugsPerApp ,"bugs per app and", averageAppsPerUser ,"apps per user.  Starting simulation...")
 
 ###
 ### Simulation begins here
@@ -487,12 +486,12 @@ while(True):
         workingApps = check_apps(apps,bugsSolved)
         happyUsers = check_apps(users,set([x for x in apps if apps[x] == True])) # The check_apps function can be used for users because it does the same thing
 
-    #print "Day:",day,"Working apps:",workingApps,"Bugs solved:",len(bugsSolved)
+    #print("Day:",day,"Working apps:",workingApps,"Bugs solved:",len(bugsSolved))
     if workingApps >= 1 and not hitFirst:
-        print "First app working on day", day
+        print("First app working on day", day)
         hitFirst = True
     if day >= totalTimeToSolve*progressIndicator:
-        print "%i%% complete on day: " % (progressIndicator*100), day
+        print("%i%% complete on day: " % (progressIndicator*100), day)
         progressIndicator += 0.10
 
     if not dontLog: # Log every day
@@ -549,17 +548,17 @@ while(True):
         lastWorkedBug = False # this is the number of the bug we last worked on, in case we want to do it again
 
     if len(bugsSolved) == numberOfBugs:
-        print "All bugs solved on day", day
+        print("All bugs solved on day", day)
         break
 
-print "CPU time taken for simulation:", (time.clock() - timespent)
-print "Apps Working * Days:", averageApps, ", average", float(averageApps)/day, "per day."
-print "Happy Users * Days:", averageHappy, ", average", float(averageHappy)/day, "per day."
+print("CPU time taken for simulation:", (time.clock() - timespent))
+print("Apps Working * Days:", averageApps, ", average", float(averageApps)/day, "per day.")
+print("Happy Users * Days:", averageHappy, ", average", float(averageHappy)/day, "per day.")
 # Final log entry - everything is done here
 #if not dontLog: append_to_log("%f, %i, %i, %i \n" % (float(day), numberOfApps, numberOfBugs, numberOfUsers) )
 if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 
-print "Now making chart."
+print("Now making chart.")
 
 chart = pandas.DataFrame(chartData)
 chart.plot()

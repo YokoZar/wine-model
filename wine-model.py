@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###
-### Wine-Model v 1.2
+### Wine-Model v 1.3
 ###  A python script to model Wine development created by Scott Ritchie
 ###
 ### Copyright (c) 2009-2014 Scott Ritchie <scottritchie@ubuntu.com>
@@ -41,6 +41,10 @@
 ###    users may not reflect reality - however, if you have a better idea, you
 ###    can work it into this very script.  Please share so we can discuss it :)
 ###
+### Version 1.3 changes:
+###  * Python 3
+###  * Massive refactor
+###  * New license
 ### Version 1.2 changes:
 ###  * Use Pandas instead of cairoplot
 ### Version 1.1 changes:
@@ -53,11 +57,12 @@ import pandas
 import matplotlib.pyplot as plt
 
 LOGFILE = 'wine-model.log'
+SOLVED = True
 
 ### Basic setup
 # TODO: constants == caps or make them defined by arguments parser
 numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
-numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
+#numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two numbers using a uniform distribution
 # Set this to True if you want to ignore the above pre-set number of bugs and instead use the alternative App Maker (see bug probability below)
 useAlternativeAppMaker = True
@@ -115,7 +120,7 @@ def pick_strategy(day, allowPrevious=True):
         #return "pickPrevious" 
     ### There are 12 normal strategies to choose from
         #return pick_random_app
-        #return pick_first_unsolved_app
+        #return pick_from_specific_unsolved_app
         #return pick_nearest_done_app
         #return pick_random_bug
         #return pick_next_bug
@@ -134,7 +139,7 @@ def pick_strategy(day, allowPrevious=True):
     if day %7 == 6: return pick_most_popular_app
     if day %7 == 5: return pick_most_common_bug
     if day %7 == 4: return pick_nearest_done_app
-    if day %7 == 3: return pick_first_unsolved_app
+    if day %7 == 3: return pick_from_specific_unsolved_app
     if day %7 == 2: return pick_first_unhappy_user
     if day %7 == 1: return pick_easiest
     if day %7 == 0: return pick_first_least_unhappy_user
@@ -145,7 +150,7 @@ def pick_strategy(day, allowPrevious=True):
 ### ----------------------------------------------------------------------------
 
 
-# TODO: remove this function
+# TODO: remove this function; all strategies should fallback to other ones
 def pick_two_strategies(day):
     """Returns a pair of strategies.  The first is done unless it's impossible, then the second is used as a backup.
     """
@@ -307,6 +312,13 @@ def pick_first_unsolved_app(bugsSolved, apps):
     if lowest: return random.choice([x for x in apps[lowest] if not x in bugsSolved])
     else: return pick_next_bug(bugsSolved) # occurs when all apps are solved
 
+#@strategy TODO
+def pick_from_specific_unsolved_app(bugsSolved: set, apps: dict) -> int:
+    for app,bugs in apps.items():
+        if bugs is not SOLVED:
+            return random.choice(list(bugs))
+    return pick_next_bug(bugsSolved) # occurs when all apps are solved
+
 # TODO: decorate as strategy; check for speed
 def pick_nearest_done_app(bugsSolved, apps):
     """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the app with the least bugs remaining.  We assume that there is at least one app and that there are no apps with zero unsolved bugs.
@@ -385,9 +397,9 @@ def pick_most_popular_app(bugsSolved, apps, users):
     if len(solvedApps) == len(apps): #all apps are solved
         return pick_next_bug(bugsSolved)
     try:
-        mostPopularApp = pick_most_common_bug(solvedApps, len(apps), users) # pretend the apps are bugs here; "solved" bugs are then the apps that equal True because check_apps set them that way when all their bugs were solved.
-    except ValueError: # This occurs when all apps somewhere in users are solved but there are still applications remaining
-        return pick_first_unsolved_app(bugsSolved, apps)
+        mostPopularApp = pick_most_common_bug(solvedApps, len(apps), users) # pretend the apps are bugs here; "solved" bugs are then the apps that equal True because check_apps set them that way when all their bugs were solved. TODO: refactor to use a helper function for both
+    except ValueError: # This occurs when there are applications remaining that no user wants
+        return pick_from_specific_unsolved_app(bugsSolved, apps)
     return random.choice([x for x in apps[mostPopularApp] if not x in bugsSolved])
 
 # TODO: decorate as strategy; check for speed
@@ -406,22 +418,18 @@ def pick_easiest(bugsSolved, reverseBugDifficulty):
         else: # there is some element in easiest not in bugsSolved
             return random.choice(list(easiest - bugsSolved))
 
-# TODO: recheck for slowness
-def check_apps(apps, bugsSolved):
-    """Checks the applications dictionary for newly working applications, 
-    Inputs:
-        apps: a dictionary with key: app number to value: frozenset[bugs affecting it].  This dictionary is not preserved: if all bugs are working then a key will be reassigned to True to speedup future lookup.
-        bugsSolved: a set of integers. Preserved.
-    TODO: we might speed things up here by purging the bug from the app once it's solved.  Then we can recheck assumptions in randomApp and randomUser.  However this isn't doable since we currently use frozensets for apps[x],
-    """
+def check_apps(apps: dict, bugsSolved: set) -> int:
+    """Checks the applications dictionary for newly working applications"""
     solved = 0
-    for x in apps: # For every app...
-        if not apps[x] is True:
-             apps[x] = apps[x] - bugsSolved # Remove all solved bugs from x
-        if apps[x] is True or apps[x] == set([]): # All bugs are solved in this app:
-            apps[x] = True
-            solved += 1
-
+    for app, bugs in apps.items():
+        if bugs is not SOLVED:
+            remaining_bugs = bugs - bugsSolved
+            if remaining_bugs:
+                apps[app] = remaining_bugs
+                continue
+            else:
+                apps[app] = SOLVED
+        solved += 1
     return solved
 
 ###
@@ -496,8 +504,8 @@ while(True):
             bugToSolve = lastWorkedBug
     if strategy == pick_random_app:
         bugToSolve = pick_random_app(bugsSolved, apps)
-    if strategy == pick_first_unsolved_app:
-        bugToSolve = pick_first_unsolved_app(bugsSolved, apps)
+    if strategy == pick_from_specific_unsolved_app:
+        bugToSolve = pick_from_specific_unsolved_app(bugsSolved, apps)
     if strategy == pick_nearest_done_app:
         bugToSolve = pick_nearest_done_app(bugsSolved, apps)
     if strategy == pick_random_bug:

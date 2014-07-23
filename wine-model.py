@@ -69,7 +69,6 @@
 import random
 import time
 from math import sqrt
-import cairoplot
 import pandas
 import matplotlib.pyplot as plt
 
@@ -584,32 +583,4 @@ chart = pandas.DataFrame(chartData)
 chart.plot()
 plt.ylabel("Percentage")
 plt.xlabel("Man-hours invested")
-plt.savefig('pandasplot.svg')
-
-print "Now making old chart."
-
-# TODO: constants
-x_labels = [ "Project start", "25% bugs solved", "50% bugs solved", "75% bugs solved", "All bugs solved" ]
-y_labels = [ "0%", "25%", "50%", "75%", "100%" ]
-cairoplot.dot_line_plot( "wine-model-results", chartData, 600, 600, x_labels = x_labels, 
-    y_labels = y_labels, axis = True, grid = True,
-    x_title = chartTitle, y_title = "Percentage", series_legend=True )
-#cairoplot.dot_line_plot( "wine-model.png", chartData, 600, 600, x_labels = x_labels, 
-#    y_labels = y_labels, axis = True, grid = False,
-#    x_title = chartTitle, y_title = "Percentage", series_legend=True )
-
-#
-#CairoPlot.dot_line_plot (name='wine-model-chart',  
-#                data=chartData,  
-#                width=1500,  
-#                height=1250,  
-#                background = None,  
-#                border = 0,  
-#                axis = True,  
-#                grid = False,  
-#                dots = False,  
-#                h_labels = None, #chartLabel,  
-#                v_labels = None,  
-#                h_bounds = None,  
-#                v_bounds = None)
-
+plt.savefig('wine-model-results.svg')

@@ -64,7 +64,7 @@ useAlternativeAppMaker = True
 # Number of apps a user uses, not the number of users an app has
 minUserApps, maxUserApps = 1, 10 
 # Set this to True to prevent making the wine-model.log file (the chart will still be made)
-dontLog = False
+enable_log = True
 print("Modeling with", numberOfBugs, "bugs,", numberOfApps, "apps, and", numberOfUsers, "users")
 if not useAlternativeAppMaker:
     print("From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user")
@@ -152,14 +152,15 @@ def pick_two_strategies(day):
     return pick_strategy(day), pick_strategy(day, allowPrevious=False)
 
 # Start the log
-if not dontLog:
+if enable_log:
     with open(LOGFILE, 'w') as logfile:
         logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
             (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
 def append_to_log(entry):
-    with open(LOGFILE, 'a') as logfile:
-        logfile.write(entry)
+    if enable_log:
+        with open(LOGFILE, 'a') as logfile:
+            logfile.write(entry)
 
 ###
 ### Program logic below
@@ -478,11 +479,10 @@ while(True):
         print("%i%% complete on day: " % (progressIndicator*100), day)
         progressIndicator += 0.10
 
-    if not dontLog: # Log every day
-        append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/numberOfBugs, workingApps/numberOfApps, happyUsers/numberOfUsers) )
-        #chartData["Bugs Solved"].append(len(bugsSolved)*100/numberOfBugs)
-        chartData["Working Apps"].append(workingApps*100/numberOfApps)
-        chartData["Happy Users"].append(happyUsers*100/numberOfUsers)
+    append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/numberOfBugs, workingApps/numberOfApps, happyUsers/numberOfUsers) )
+    #chartData["Bugs Solved"].append(len(bugsSolved)*100/numberOfBugs)
+    chartData["Working Apps"].append(workingApps*100/numberOfApps)
+    chartData["Happy Users"].append(happyUsers*100/numberOfUsers)
 
     # Pick a bug from those not yet solved:
     ### TODO: This could be more elegant if they could all be called in the same way, then we could just do
@@ -532,13 +532,12 @@ while(True):
 
     if len(bugsSolved) == numberOfBugs:
         print("All bugs solved on day", day)
+        append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
 
 print("CPU time taken for simulation:", (time.clock() - timespent))
 print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")
 print("Happy Users * Days:", happy_user_days, ", average", happy_user_days/day, "per day.")
-# Final log entry - everything is done here
-if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 
 print("Now making chart.")
 

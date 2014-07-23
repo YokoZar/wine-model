@@ -119,7 +119,8 @@ totalTimeToSolve = sum(bugDifficulty.values())
 
 print totalTimeToSolve, "total days to solve every bug, an average of", float(totalTimeToSolve)/numberOfBugs, "days per bug."
 
-def pickStrategy(day, allowPrevious=True):
+# TODO: make neater, let it take more configuration data rather than be manually edited
+def pick_strategy(day, allowPrevious=True):
     """ Returns a strategy function based on the day.  This is meant to be modified by user.
     If allowPrevious is set to False, then a strategy that doesn't always return a valid bug should never be picked.
     """
@@ -128,30 +129,30 @@ def pickStrategy(day, allowPrevious=True):
     #if allowPrevious:
         #return "pickPrevious" 
     ### There are 12 normal strategies to choose from
-        #return pickRandomApp
-        #return pickFirstUnsolvedApp
-        #return pickNearestDoneApp
-        #return pickRandomBug
-        #return pickNextBug
-        #return pickMostPopularApp
-        #return pickMostCommonBug
-        #return pickEasiest
-        #return pickRandomUser
-        #return pickFirstUnhappyUser
-        #return pickRandomLeastUnhappyUser
-        #return pickFirstLeastUnhappyUser
+        #return pick_random_app
+        #return pick_first_unsolved_app
+        #return pick_nearest_done_app
+        #return pick_random_bug
+        #return pick_next_bug
+        #return pick_most_popular_app
+        #return pick_most_common_bug
+        #return pick_easiest
+        #return pick_random_user
+        #return pick_first_unhappy_user
+        #return pick_random_least_unhappy_user
+        #return pick_first_least_unhappy_user
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
-        return pickMostCommonBug
+        return pick_most_common_bug
     ### "Realistic" model: do different plausible strategies for each day of the week
-    if day %7 == 6: return pickMostPopularApp
-    if day %7 == 5: return pickMostCommonBug
-    if day %7 == 4: return pickNearestDoneApp
-    if day %7 == 3: return pickFirstUnsolvedApp
-    if day %7 == 2: return pickFirstUnhappyUser
-    if day %7 == 1: return pickEasiest
-    if day %7 == 0: return pickFirstLeastUnhappyUser
+    if day %7 == 6: return pick_most_popular_app
+    if day %7 == 5: return pick_most_common_bug
+    if day %7 == 4: return pick_nearest_done_app
+    if day %7 == 3: return pick_first_unsolved_app
+    if day %7 == 2: return pick_first_unhappy_user
+    if day %7 == 1: return pick_easiest
+    if day %7 == 0: return pick_first_least_unhappy_user
 
 
 ### ----------------------------------------------------------------------------
@@ -159,10 +160,11 @@ def pickStrategy(day, allowPrevious=True):
 ### ----------------------------------------------------------------------------
 
 
-def pickTwoStrategies(day):
+# TODO: remove this function
+def pick_two_strategies(day):
     """Returns a pair of strategies.  The first is done unless it's impossible, then the second is used as a backup.
     """
-    return pickStrategy(day), pickStrategy(day, allowPrevious=False)
+    return pick_strategy(day), pick_strategy(day, allowPrevious=False)
 
 ### 
 ### Log file
@@ -184,10 +186,11 @@ if not dontLog:
 ### Program logic below
 ###
 
-def alternativeMakeApp(probability, bugs=False):
+# TODO: reconsider the naming here
+def alternative_make_app(probability, bugs=False):
     """Returns a set of bug numbers that this app depends on.
 
-    Just like makeApp, but not using prior information about number of bugs and instead using the relative probability for every bug. probability instead of relative probability.
+    Just like make_app, but not using prior information about number of bugs and instead using the relative probability for every bug. probability instead of relative probability.
     Inputs:
     probability, a list of size equal to the number of bugs possible.
         The values of the probability list are the relative probability of that bug being selected. 1 = normal, .5 = half as likely, 2 = twice as likely, and so on.
@@ -201,9 +204,10 @@ def alternativeMakeApp(probability, bugs=False):
     for x in xrange(possibleBugs):
         if random.uniform(0, maxProbability) <= probability[x]: #roll the dice
             appBugs.add(x)
-    return set(appBugs) # We used to make this a frozen set, but now we trim the app in checkApps so subsequent scans of it go faster.    
+    return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.    
 
-def makeApp(probability, bugs):
+# TODO: review for speed, possible refactor, possibly make probability+bugs tuples
+def make_app(probability, bugs):
     """Returns a set of bug numbers that this app depends on.
     
     Inputs:
@@ -224,9 +228,10 @@ def makeApp(probability, bugs):
             if (thisBug not in appBugs) and random.uniform(0, maxProbability) <= probability[thisBug]: #roll the dice, but only if this is a new bug
                 appBugs.add(thisBug)
                 break # keep trying until we succeed
-    return set(appBugs) # We used to make this a frozen set, but now we trim the app in checkApps so subsequent scans of it go faster.
+    return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.
 
-def pickNextBug(bugsSolved):
+# TODO: decorate as strategy; check for speed
+def pick_next_bug(bugsSolved):
     """Picks the smallest bug number not in the bugsSolved list
     Input: bugsSolved
     """
@@ -235,7 +240,8 @@ def pickNextBug(bugsSolved):
         if x not in bugsSolved: return x
         x += 1
 
-def pickRandomBug(bugsSolved, numberOfBugs):
+# TODO: decorate as strategy; check for speed
+def pick_random_bug(bugsSolved, numberOfBugs):
     """Picks a new bug not in the bugsSolved list at random
     Inputs:
         bugsSolved: a list of integers representing bugs already solved
@@ -248,72 +254,80 @@ def pickRandomBug(bugsSolved, numberOfBugs):
     #This above is technically equivalent but is really, really slow
     return random.choice([x for x in range(numberOfBugs) if not x in bugsSolved])
 
-def pickRandomApp(bugsSolved, apps):
-    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through checkApps.  If all apps are solved, returns pickNextBug
+# TODO: decorate as strategy; check for speed
+def pick_random_app(bugsSolved, apps):
+    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through check_apps.  If all apps are solved, returns pick_next_bug
     """
     unsolvedApps = [a for a in apps if not apps[a] is True] # Exclude apps that are set to True because already solved 
     if unsolvedApps == []: # all apps are solved
-        return pickNextBug(bugsSolved)
+        return pick_next_bug(bugsSolved)
     appToSolve = apps[random.choice(unsolvedApps)]
     return random.choice([y for y in appToSolve if not y in bugsSolved]) 
 
-def pickRandomUser(bugsSolved, apps, users):
+# TODO: decorate as strategy; check for speed
+def pick_random_user(bugsSolved, apps, users):
     """Picks a random unhappy user, picks a random one of his unsolved applications, and then picks a random bug in it.  If all users are happy, picks a random App instead.
     """
     unhappyUsers = [a for a in users.keys() if not users[a] is True]
     if unhappyUsers == []: #happens when all users are happy
-        return pickRandomApp(bugsSolved, apps)
+        return pick_random_app(bugsSolved, apps)
     thisUser = random.choice(unhappyUsers) # Gets a random unhappy user, which is a list of apps. happy users are set to True
     limitedApps = dict( (x,apps[x]) for x in users[thisUser] ) # Make a new "apps" that is only this user's apps
-    return pickRandomApp(bugsSolved, limitedApps) # Then just use our existing pickRandomApp function
-        
-def pickFirstUnhappyUser(bugsSolved, apps, users):
+    return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
+
+# TODO: decorate as strategy; check for speed
+def pick_first_unhappy_user(bugsSolved, apps, users):
     """Returns an unsolved bug from an application from the first unhappy user.  If all users are happy, returns a bug from an unused application.
     """
     unhappyUsers = [a for a in users.keys() if not users[a] is True]
     if unhappyUsers == []: #happens when all users are happy
-        return pickRandomApp(bugsSolved, apps)
+        return pick_random_app(bugsSolved, apps)
     thisUser = unhappyUsers[0] # thisUser is a list of apps
     limitedApps = dict( (x,apps[x]) for x in users[thisUser] ) # Make a new "apps" that is only this user's apps
-    return pickRandomApp(bugsSolved, limitedApps) # Then just use our existing pickRandomApp function
+    return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
 
-def pickRandomLeastUnhappyUser(bugsSolved, apps, users):
+# TODO: decorate as strategy; check for speed
+def pick_random_least_unhappy_user(bugsSolved, apps, users):
     """Returns an unsolved bug from an application from a random user among those closest to being happy (has the fewest nonworking applications).  Note that this is based on applications - it doesn't analyze total bugs left or difficulty.
     """
     unhappyUsers = [users[a] for a in users.keys() if not users[a] is True] # here we are converting users from a dictionary to a list of lists of apps
     if unhappyUsers == []: #happens when all users are happy
-        return pickRandomApp(bugsSolved, apps)
+        return pick_random_app(bugsSolved, apps)
     unhappyUsers = [ [x for x in y if not x is True] for y in unhappyUsers ] # purge all solved apps from the unhappy users
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
     thisUser = random.choice(unhappyUsers) # thisUser is a list of apps
     limitedApps = dict( (x,apps[x]) for x in thisUser ) # Make a new "apps" that is only this user's apps
-    return pickRandomApp(bugsSolved, limitedApps) # Then just use our existing pickRandomApp function    
+    return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
-def pickFirstLeastUnhappyUser(bugsSolved, apps, users):
+# TODO: decorate as strategy; check for speed
+def pick_first_least_unhappy_user(bugsSolved, apps, users):
     """Returns an unsolved bug from an application from a the first user among those closest to being happy (has the fewest nonworking applications).  Note that this is based on applications - it doesn't analyze total bugs left or difficulty.  Code here is duplicated from pickLeastUnhappyUser, with the exception that the lowest-numbered user is chosen rather than randomly.
     """
     unhappyUsers = [users[a] for a in users.keys() if not users[a] is True] # here we are converting users from a dictionary to a list of lists of apps
     if unhappyUsers == []: #happens when all users are happy
-        return pickRandomApp(bugsSolved, apps)
+        return pick_random_app(bugsSolved, apps)
     unhappyUsers = [ [x for x in y if not x is True] for y in unhappyUsers ] # purge all solved apps from the unhappy users
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
     thisUser = unhappyUsers[0] # thisUser is a list of apps
     limitedApps = dict( (x,apps[x]) for x in thisUser ) # Make a new "apps" that is only this user's apps
-    return pickRandomApp(bugsSolved, limitedApps) # Then just use our existing pickRandomApp function    
+    return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
-def pickFirstUnsolvedApp(bugsSolved, apps):
-    """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the first app that has any open bugs.  We assume that there is at leat one app and that there are no apps with zero unsolved bugs which haven't yet been cleaned by checkApps.
+# TODO: consider apps[x] is True --> is SOLVED, define solved as True
+# TODO: decorate as strategy; check for speed
+def pick_first_unsolved_app(bugsSolved, apps):
+    """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the first app that has any open bugs.  We assume that there is at leat one app and that there are no apps with zero unsolved bugs which haven't yet been cleaned by check_apps.
     """
     lowest = False
     for x in apps:
         if not apps[x] is True: #Note that this will only occur when apps[x] is a list (Or frozenset), which is what we want
             lowest = x
     if lowest: return random.choice([x for x in apps[lowest] if not x in bugsSolved])
-    else: return pickNextBug(bugsSolved) # occurs when all apps are solved
+    else: return pick_next_bug(bugsSolved) # occurs when all apps are solved
 
-def pickNearestDoneApp(bugsSolved, apps):
+# TODO: decorate as strategy; check for speed
+def pick_nearest_done_app(bugsSolved, apps):
     """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the app with the least bugs remaining.  We assume that there is at least one app and that there are no apps with zero unsolved bugs.
     """
     openBugCount = dict ( (len([y for y in apps[x] if y not in bugsSolved]), x) for x in apps if not apps[x] == True) # Create a dictionary of key: open bugs to value: app number, excluding ones that are solved
@@ -321,35 +335,38 @@ def pickNearestDoneApp(bugsSolved, apps):
         bestApp = apps[openBugCount[min(openBugCount)]] # The one with the smallest open bugs is the best app
         return random.choice([x for x in bestApp if not x in bugsSolved])
     else: # openBugCount is empty, all apps are solved, so any bug will work fine:
-        return pickNextBug(bugsSolved)
+        return pick_next_bug(bugsSolved)
 
-def sumBugs (numberOfBugs, apps):
-    """Returns a list of the frequency of each bug.  This will then be handled by bugPopularity
+# TODO: this smells like it can be a smoother list construction
+def sum_bugs (numberOfBugs, apps):
+    """Returns a list of the frequency of each bug.  This will then be handled by bug_popularity
     inputs:
         numberOfBugs, an integer showing total number of bugs
         apps: here we assume that everything in x is an iterable
     """
     bugSums = [0 for x in xrange(numberOfBugs)]
     for x in apps:
-        if apps[x] != True:  # In case apps has been passed to checkApps before summing here
+        if apps[x] != True:  # In case apps has been passed to check_apps before summing here
             for y in apps[x]: # for every bug this app affects...
                 bugSums[y] += 1 # add 1 to the sum of this bug
     return bugSums
 
-def bugPopularity (bugCount):
+# TODO: this smells rather inefficient
+def bug_popularity (bugCount):
     """Returns a dictionary of affected app count:which bugs that affect that many apps
-    Thus if 3 apps are affected by bugs 10, 11, and 12, then bugPopularity[3]=[10,11,12]
+    Thus if 3 apps are affected by bugs 10, 11, and 12, then bug_popularity[3]=[10,11,12]
     
     input: bugCount, a list of how many apps each bug number affects
      bugcount is destroyed in this function
     """
-    bugPopularity = dict( (x,[]) for x in bugCount )
+    bug_popularity = dict( (x,[]) for x in bugCount )
     while(True):
-        bugPopularity[bugCount.pop()].append(len(bugCount)) #iterate through bugCount and add the particular bugs to the list
+        bug_popularity[bugCount.pop()].append(len(bugCount)) #iterate through bugCount and add the particular bugs to the list
         if len(bugCount) == 0: # once bugCount is out of items, then we are done building the dictionary
-            return bugPopularity
+            return bug_popularity
 
-def pickMostCommonBug(bugsSolved, numberOfBugs, apps, priority=False):
+# TODO: decorate as strategy; check for speed
+def pick_most_common_bug(bugsSolved, numberOfBugs, apps, priority=False):
     """Picks a new bug not in bugsSolved based on which has the most frequency amongst nonworking apps
     If all apps have all their bugs solved, picks the next unsolved bug not associated with an app.
 
@@ -360,7 +377,7 @@ def pickMostCommonBug(bugsSolved, numberOfBugs, apps, priority=False):
         priority: TODO
     """
     if not priority:
-        bugSums = bugPopularity (sumBugs (numberOfBugs, apps)) #bugSums is a dictionary of the number of times a bug occurs[which bug it is]
+        bugSums = bug_popularity (sum_bugs (numberOfBugs, apps)) #bugSums is a dictionary of the number of times a bug occurs[which bug it is]
     else: # priority was supplied, so we just use that rather than recounting the priority each time
         bugSums = priority
     x = max(bugSums)
@@ -374,24 +391,26 @@ def pickMostCommonBug(bugsSolved, numberOfBugs, apps, priority=False):
             return y
         if newMaxNeeded: # only calculate that new max if we actually had to loop
             if bugSums == {}: # occurs when all apps are solved
-                return pickNextBug(bugsSolved)
+                return pick_next_bug(bugsSolved)
             x = max(bugSums)
             newMaxNeeded = False
 
-def pickMostPopularApp(bugsSolved, apps, users):
+# TODO: decorate as strategy; check for speed
+def pick_most_popular_app(bugsSolved, apps, users):
     """Returns an unsolved bug from the most popular application with open bugs.
-        If no used application has open bugs, returns a bug from an unused application. If all apps are solved, returns pickNextBug
+        If no used application has open bugs, returns a bug from an unused application. If all apps are solved, returns pick_next_bug
     """
     solvedApps = [x for x in apps if apps[x] is True]
     if len(solvedApps) == len(apps): #all apps are solved
-        return pickNextBug(bugsSolved)
+        return pick_next_bug(bugsSolved)
     try:
-        mostPopularApp = pickMostCommonBug(solvedApps, len(apps), users) # pretend the apps are bugs here; "solved" bugs are then the apps that equal True because checkApps set them that way when all their bugs were solved.
+        mostPopularApp = pick_most_common_bug(solvedApps, len(apps), users) # pretend the apps are bugs here; "solved" bugs are then the apps that equal True because check_apps set them that way when all their bugs were solved.
     except ValueError: # This occurs when all apps somewhere in users are solved but there are still applications remaining
-        return pickFirstUnsolvedApp(bugsSolved, apps)
+        return pick_first_unsolved_app(bugsSolved, apps)
     return random.choice([x for x in apps[mostPopularApp] if not x in bugsSolved])
 
-def pickEasiest(bugsSolved, reverseBugDifficulty):
+# TODO: decorate as strategy; check for speed
+def pick_easiest(bugsSolved, reverseBugDifficulty):
     """Returns the unsolved bug with the lowest difficulty
     Input:
         bugsSolved
@@ -406,7 +425,8 @@ def pickEasiest(bugsSolved, reverseBugDifficulty):
         else: # there is some element in easiest not in bugsSolved
             return random.choice(list(easiest - bugsSolved))
 
-def checkApps(apps, bugsSolved):
+# TODO: recheck for slowness
+def check_apps(apps, bugsSolved):
     """Checks the applications dictionary for newly working applications, 
     Inputs:
         apps: a dictionary with key: app number to value: frozenset[bugs affecting it].  This dictionary is not preserved: if all bugs are working then a key will be reassigned to True to speedup future lookup.
@@ -423,7 +443,8 @@ def checkApps(apps, bugsSolved):
 
     return solved
 
-def appendToLog(entry):
+# TODO: use a with statement here
+def append_to_log(entry):
     """Writes entry to the log.  Make sure input has a line break at the end.
     """
     try:
@@ -440,14 +461,14 @@ def appendToLog(entry):
 ###
 
 if useAlternativeAppMaker:
-    apps = dict( (x, alternativeMakeApp(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = dict( (x, alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 else:
-    apps = dict( (x, makeApp(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = dict( (x, make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in xrange(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 
-users = dict( (x, makeApp(appProbability, random.randint(minUserApps,maxUserApps))) for x in xrange(numberOfUsers) ) #Users will have from minUserApps to maxUserApps, uniformly distributed
+users = dict( (x, make_app(appProbability, random.randint(minUserApps,maxUserApps))) for x in xrange(numberOfUsers) ) #Users will have from minUserApps to maxUserApps, uniformly distributed
 
-priority = bugPopularity(sumBugs(numberOfBugs, apps)) #for speeding up the pickMostPopular function
-reverseBugDifficulty = {} #for speeding up the pickEasiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)
+priority = bug_popularity(sum_bugs(numberOfBugs, apps)) #for speeding up the pickMostPopular function
+reverseBugDifficulty = {} #for speeding up the pick_easiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)
 for x in bugDifficulty:
     if bugDifficulty[x] not in reverseBugDifficulty:
         reverseBugDifficulty[bugDifficulty[x]]=set([x])
@@ -472,7 +493,7 @@ hitHalfway = False
 hitFirst = False
 lastWorkedBug = False
 
-appendToLog("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
+append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
 chartData = {"Working Apps" : [], "Happy Users" : []}
 
 progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
@@ -480,8 +501,8 @@ progressIndicator = 0.10 # When to first show 'working on day' (x) progress indi
 while(True): 
     # Check for newly working apps every day we solved a bug in the previous day (otherwise, we might try and work on an already working app):
     if lastWorkedBug is False:
-        workingApps = checkApps(apps,bugsSolved)
-        happyUsers = checkApps(users,set([x for x in apps if apps[x] == True])) # The checkApps function can be used for users because it does the same thing
+        workingApps = check_apps(apps,bugsSolved)
+        happyUsers = check_apps(users,set([x for x in apps if apps[x] == True])) # The check_apps function can be used for users because it does the same thing
 
     #print "Day:",day,"Working apps:",workingApps,"Bugs solved:",len(bugsSolved)
     if workingApps >= 1 and not hitFirst:
@@ -492,7 +513,7 @@ while(True):
         progressIndicator += 0.10
 
     if not dontLog: # Log every day
-        appendToLog("%f, %f, %f, %f \n" % (float(day), float(len(bugsSolved))/numberOfBugs, float(workingApps)/numberOfApps, float(happyUsers)/numberOfUsers) )
+        append_to_log("%f, %f, %f, %f \n" % (float(day), float(len(bugsSolved))/numberOfBugs, float(workingApps)/numberOfApps, float(happyUsers)/numberOfUsers) )
         #chartData["Bugs Solved"].append(float(len(bugsSolved)*100)/numberOfBugs)
         chartData["Working Apps"].append(float(workingApps*100)/numberOfApps)
         chartData["Happy Users"].append(float(happyUsers*100)/numberOfUsers)
@@ -500,42 +521,42 @@ while(True):
     # Pick a bug from those not yet solved:
     ### TODO: This could be more elegant if they could all be called in the same way, then we could just do
     # strategy(bugsSolved, apps, numberOfBugs, priority) ###
-    strategy, backupStrategy = pickTwoStrategies(day)
+    strategy, backupStrategy = pick_two_strategies(day)
     if strategy == "pickPrevious": # If the strategy is pickPrevious, then by default we just use the previous bug to solve; otherwise we need to use the backup strategy
         if lastWorkedBug is False: # note we do not test lastWorkedBug == 0 in case we just solved bug number 0
             strategy = backupStrategy
         else:
             bugToSolve = lastWorkedBug
-    if strategy == pickRandomApp:
-        bugToSolve = pickRandomApp(bugsSolved, apps)
-    if strategy == pickFirstUnsolvedApp:
-        bugToSolve = pickFirstUnsolvedApp(bugsSolved, apps)
-    if strategy == pickNearestDoneApp:
-        bugToSolve = pickNearestDoneApp(bugsSolved, apps)
-    if strategy == pickRandomBug:
-        bugToSolve = pickRandomBug(bugsSolved, numberOfBugs)
-    if strategy == pickMostCommonBug:
-        bugToSolve = pickMostCommonBug(bugsSolved, numberOfBugs, apps, priority)
-    if strategy == pickNextBug:
-        bugToSolve = pickNextBug(bugsSolved)
-    if strategy == pickMostPopularApp:
-        bugToSolve = pickMostPopularApp(bugsSolved, apps, users)
-    if strategy == pickEasiest:
-        bugToSolve = pickEasiest(bugsSolved, reverseBugDifficulty)
-    if strategy == pickRandomUser:
-        bugToSolve = pickRandomUser(bugsSolved, apps, users)
-    if strategy == pickFirstUnhappyUser:
-        bugToSolve = pickFirstUnhappyUser(bugsSolved, apps, users)
-    if strategy == pickRandomLeastUnhappyUser:
-        bugToSolve = pickRandomLeastUnhappyUser(bugsSolved, apps, users)
-    if strategy == pickFirstLeastUnhappyUser:
-        bugToSolve = pickFirstLeastUnhappyUser(bugsSolved, apps, users)
+    if strategy == pick_random_app:
+        bugToSolve = pick_random_app(bugsSolved, apps)
+    if strategy == pick_first_unsolved_app:
+        bugToSolve = pick_first_unsolved_app(bugsSolved, apps)
+    if strategy == pick_nearest_done_app:
+        bugToSolve = pick_nearest_done_app(bugsSolved, apps)
+    if strategy == pick_random_bug:
+        bugToSolve = pick_random_bug(bugsSolved, numberOfBugs)
+    if strategy == pick_most_common_bug:
+        bugToSolve = pick_most_common_bug(bugsSolved, numberOfBugs, apps, priority)
+    if strategy == pick_next_bug:
+        bugToSolve = pick_next_bug(bugsSolved)
+    if strategy == pick_most_popular_app:
+        bugToSolve = pick_most_popular_app(bugsSolved, apps, users)
+    if strategy == pick_easiest:
+        bugToSolve = pick_easiest(bugsSolved, reverseBugDifficulty)
+    if strategy == pick_random_user:
+        bugToSolve = pick_random_user(bugsSolved, apps, users)
+    if strategy == pick_first_unhappy_user:
+        bugToSolve = pick_first_unhappy_user(bugsSolved, apps, users)
+    if strategy == pick_random_least_unhappy_user:
+        bugToSolve = pick_random_least_unhappy_user(bugsSolved, apps, users)
+    if strategy == pick_first_least_unhappy_user:
+        bugToSolve = pick_first_least_unhappy_user(bugsSolved, apps, users)
 
     # And take bugDifficulty days to solve it
     day += 1 
     lastWorkedBug = bugToSolve # In case we want to work on it again tomorrow
 
-    # Increment the counters for happiness and working apps.  We multiply by bugDifficulty since we are going that many days before solving the next bug.  We don't update the bugsSolved list with checkApps until after this time.
+    # Increment the counters for happiness and working apps.  We multiply by bugDifficulty since we are going that many days before solving the next bug.  We don't update the bugsSolved list with check_apps until after this time.
     averageApps += workingApps # average apps is actually a sum of apps working * days they've been working -- divide by day to get the actual average
     averageHappy += happyUsers
 
@@ -552,8 +573,8 @@ print "CPU time taken for simulation:", (time.clock() - timespent)
 print "Apps Working * Days:", averageApps, ", average", float(averageApps)/day, "per day."
 print "Happy Users * Days:", averageHappy, ", average", float(averageHappy)/day, "per day."
 # Final log entry - everything is done here
-#if not dontLog: appendToLog("%f, %i, %i, %i \n" % (float(day), numberOfApps, numberOfBugs, numberOfUsers) )
-if not dontLog: appendToLog("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
+#if not dontLog: append_to_log("%f, %i, %i, %i \n" % (float(day), numberOfApps, numberOfBugs, numberOfUsers) )
+if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 
 print "Now making chart."
 

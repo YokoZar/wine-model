@@ -46,15 +46,18 @@
 ### Version 1.1 changes:
 ###  * Relative bug probability by default
 
-
 import random
 import time
 from math import sqrt
 import pandas
 import matplotlib.pyplot as plt
 
+LOGFILE = 'wine-model.log'
+
 ### Basic setup
+# TODO: constants == caps or make them defined by arguments parser
 numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
+numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two numbers using a uniform distribution
 # Set this to True if you want to ignore the above pre-set number of bugs and instead use the alternative App Maker (see bug probability below)
 useAlternativeAppMaker = True
@@ -148,22 +151,16 @@ def pick_two_strategies(day):
     """
     return pick_strategy(day), pick_strategy(day, allowPrevious=False)
 
-### 
-### Log file
-###
-
+# Start the log
 if not dontLog:
-    try:
-        logfile = open('wine-model.log', 'w')
-        try:
-            logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
-                (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
-        finally:
-            logfile.close()
-    except IOError: #cannot open file, don't log
-        print("Cannot open log file")
-        dontLog = True
-        pass
+    with open(LOGFILE, 'w') as logfile:
+        logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
+            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
+
+def append_to_log(entry):
+    with open(LOGFILE, 'a') as logfile:
+        logfile.write(entry)
+
 ###
 ### Program logic below
 ###
@@ -424,19 +421,6 @@ def check_apps(apps, bugsSolved):
             solved += 1
 
     return solved
-
-# TODO: use a with statement here
-def append_to_log(entry):
-    """Writes entry to the log.  Make sure input has a line break at the end.
-    """
-    try:
-        logfile = open('wine-model.log', 'a')
-        try:
-            logfile.write(entry)
-        finally:
-            logfile.close()
-    except IOError: #cannot open file, don't log
-        pass
 
 ###
 ### Simulation setup

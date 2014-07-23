@@ -78,9 +78,9 @@ chartTitle = "Simulated model of Wine development" # Appears at the top of the c
 ## bugDifficulty is the number of days it takes to solve a bug.
 ## When a bug is worked on, it's difficulty is reduced by one until it is 0, so some bugs need to be "solved" (worked on) multiple times.
 # Set all to 1 to have all bugs be equally difficult.
-#bugDifficulty = dict( (x,1) for x in range(numberOfBugs) ) 
+#bugDifficulty = {x:1 for x in range(numberOfBugs)}
 ## Here, a positive, almost normally distributed number of days per bug.  Average is just under 5 days per bug, with about 10% taking only 1 day.
-bugDifficulty = dict( (x, abs(int(random.normalvariate(4,3))) + 1) for x in range(numberOfBugs) )  
+bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(numberOfBugs)}
 ###
 
 ### Relative probability of bugs and applications
@@ -252,10 +252,11 @@ def pick_random_user(bugsSolved, apps, users):
     if unhappyUsers == []: #happens when all users are happy
         return pick_random_app(bugsSolved, apps)
     thisUser = random.choice(unhappyUsers) # Gets a random unhappy user, which is a list of apps. happy users are set to True
-    limitedApps = dict( (x,apps[x]) for x in users[thisUser] ) # Make a new "apps" that is only this user's apps
+    limitedApps = {x:apps[x] for x in users[thisUser]} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
 
 # TODO: decorate as strategy; check for speed
+# TODO: implement as partial of above
 def pick_first_unhappy_user(bugsSolved, apps, users):
     """Returns an unsolved bug from an application from the first unhappy user.  If all users are happy, returns a bug from an unused application.
     """
@@ -263,7 +264,7 @@ def pick_first_unhappy_user(bugsSolved, apps, users):
     if unhappyUsers == []: #happens when all users are happy
         return pick_random_app(bugsSolved, apps)
     thisUser = unhappyUsers[0] # thisUser is a list of apps
-    limitedApps = dict( (x,apps[x]) for x in users[thisUser] ) # Make a new "apps" that is only this user's apps
+    limitedApps = {x:apps[x] for x in users[thisUser]} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
 
 # TODO: decorate as strategy; check for speed
@@ -277,7 +278,7 @@ def pick_random_least_unhappy_user(bugsSolved, apps, users):
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
     thisUser = random.choice(unhappyUsers) # thisUser is a list of apps
-    limitedApps = dict( (x,apps[x]) for x in thisUser ) # Make a new "apps" that is only this user's apps
+    limitedApps = {x:apps[x] for x in thisUser} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
 # TODO: decorate as strategy; check for speed
@@ -291,7 +292,7 @@ def pick_first_least_unhappy_user(bugsSolved, apps, users):
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
     thisUser = unhappyUsers[0] # thisUser is a list of apps
-    limitedApps = dict( (x,apps[x]) for x in thisUser ) # Make a new "apps" that is only this user's apps
+    limitedApps = {x:apps[x] for x in thisUser} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
 # TODO: consider apps[x] is True --> is SOLVED, define solved as True
@@ -339,7 +340,7 @@ def bug_popularity (bugCount):
     input: bugCount, a list of how many apps each bug number affects
      bugcount is destroyed in this function
     """
-    bug_popularity = dict( (x,[]) for x in bugCount )
+    bug_popularity = {x:[] for x in bugCount}
     while(True):
         bug_popularity[bugCount.pop()].append(len(bugCount)) #iterate through bugCount and add the particular bugs to the list
         if len(bugCount) == 0: # once bugCount is out of items, then we are done building the dictionary
@@ -428,11 +429,11 @@ def check_apps(apps, bugsSolved):
 ###
 
 if useAlternativeAppMaker:
-    apps = dict( (x, alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in range(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 else:
-    apps = dict( (x, make_app(bugProbability, random.randint(minAppBugs,maxAppBugs))) for x in range(numberOfApps) ) #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = {x:make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 
-users = dict( (x, make_app(appProbability, random.randint(minUserApps,maxUserApps))) for x in range(numberOfUsers) ) #Users will have from minUserApps to maxUserApps, uniformly distributed
+users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(numberOfUsers)} #Users will have from minUserApps to maxUserApps, uniformly distributed
 
 priority = bug_popularity(sum_bugs(numberOfBugs, apps)) #for speeding up the pickMostPopular function
 reverseBugDifficulty = {} #for speeding up the pick_easiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)

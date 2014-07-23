@@ -53,6 +53,7 @@
 import random
 import time
 from math import sqrt
+from operator import itemgetter
 import pandas
 import matplotlib.pyplot as plt
 
@@ -125,7 +126,7 @@ def pick_strategy(day, allowPrevious=True):
         #return pick_random_bug
         #return pick_next_bug
         #return pick_most_popular_app
-        #return pick_most_common_bug
+        #return pick_from_most_common_by_feature
         #return pick_easiest
         #return pick_random_user
         #return pick_first_unhappy_user
@@ -134,10 +135,10 @@ def pick_strategy(day, allowPrevious=True):
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
-        return pick_most_common_bug
+        return pick_from_most_common_by_feature
     ### "Realistic" model: do different plausible strategies for each day of the week
     if day %7 == 6: return pick_most_popular_app
-    if day %7 == 5: return pick_most_common_bug
+    if day %7 == 5: return pick_from_most_common_by_feature
     if day %7 == 4: return pick_nearest_done_app
     if day %7 == 3: return pick_from_specific_unsolved_app
     if day %7 == 2: return pick_first_unhappy_user
@@ -358,6 +359,22 @@ def bug_popularity (bugCount):
         if len(bugCount) == 0: # once bugCount is out of items, then we are done building the dictionary
             return bug_popularity
 
+def bugs_by_frequency_in_features_generator():
+    # inherit numberOfBugs, apps, bugsSolved from outer scope
+    count_in_apps = {bug:0 for bug in range(numberOfBugs)}
+    for app, bugs in apps.items():
+        if bugs is not SOLVED:
+            for bug in bugs:
+                count_in_apps[bug] += 1
+    priority_order = [bug for (bug, frequency) in sorted(count_in_apps.items(), key=itemgetter(1))]
+    for bug in priority_order:
+        while bug not in bugsSolved: yield bug
+
+bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
+def pick_from_most_common_by_feature():
+    """Picks the bug that is the most common among all the unfinished features"""
+    return next(bugs_by_frequency_in_features)
+
 # TODO: decorate as strategy; check for speed
 def pick_most_common_bug(bugsSolved, numberOfBugs, apps, priority=False):
     """Picks a new bug not in bugsSolved based on which has the most frequency amongst nonworking apps
@@ -381,12 +398,38 @@ def pick_most_common_bug(bugsSolved, numberOfBugs, apps, priority=False):
             del bugSums[x]   # clean up so an empty list won't be "max" next time
             newMaxNeeded = True  # then we need to find a new max for this time
         if not y in bugsSolved:
+            #test = pick_from_most_common_by_feature()
+            #if test != y: print("Warning: functions don't match:", test, y)
             return y
         if newMaxNeeded: # only calculate that new max if we actually had to loop
             if bugSums == {}: # occurs when all apps are solved
                 return pick_next_bug(bugsSolved)
             x = max(bugSums)
             newMaxNeeded = False
+
+def prioritize(goals: dict, total_goals: int):
+    count = {x:0 for x in range(total_goals)}
+    for goal, tasks in goals.items():
+        if tasks is not SOLVED:
+            for task in tasks:
+                count[task] += 1
+    return [task for (task, frequency) in sorted(count.items(), key=itemgetter(1))]
+    #yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1)))
+
+def apps_by_popularity_generator():
+    for app in prioritize(goals=apps, total_goals=numberOfApps):
+        while apps[app] is not SOLVED: yield app
+
+apps_by_popularity = apps_by_popularity_generator()
+def pick_specific_from_most_popular_app():
+    """Picks a specific bug from the most popular app"""
+    app = next(apps_by_popularity)
+    return list(apps[app])[0]
+
+def pick_random_from_most_popular_app():
+    """Picks a random bug from the most popular app"""
+    app = next(apps_by_popularity)
+    return random.choice(list(apps[app]))
 
 # TODO: decorate as strategy; check for speed
 def pick_most_popular_app(bugsSolved, apps, users):
@@ -443,7 +486,9 @@ else:
 
 users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(numberOfUsers)} #Users will have from minUserApps to maxUserApps, uniformly distributed
 
+# TODO: remove (use a generator)
 priority = bug_popularity(sum_bugs(numberOfBugs, apps)) #for speeding up the pickMostPopular function
+
 reverseBugDifficulty = {} #for speeding up the pick_easiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)
 for x in bugDifficulty:
     if bugDifficulty[x] not in reverseBugDifficulty:
@@ -510,8 +555,8 @@ while(True):
         bugToSolve = pick_nearest_done_app(bugsSolved, apps)
     if strategy == pick_random_bug:
         bugToSolve = pick_random_bug(bugsSolved, numberOfBugs)
-    if strategy == pick_most_common_bug:
-        bugToSolve = pick_most_common_bug(bugsSolved, numberOfBugs, apps, priority)
+    if strategy == pick_from_most_common_by_feature:
+        bugToSolve = pick_from_most_common_by_feature()
     if strategy == pick_next_bug:
         bugToSolve = pick_next_bug(bugsSolved)
     if strategy == pick_most_popular_app:

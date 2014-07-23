@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 ###
-### Wine-Model v 1.1
+### Wine-Model v 1.2
 ###  A python script to model Wine development created by Scott Ritchie
 ###
-### Licensed under the LGPL version 2 or later, as is the included cairoplot program
+### Copyright (c) 2009-2014 Scott Ritchie <scottritchie@ubuntu.com>
+### Licensed under the MIT License.  See the LICENSE file for details.
 ###
 ### HOWTO:
 ###  First, read this blog post to learn a bit about the theory behind the model:
@@ -41,29 +42,10 @@
 ###    users may not reflect reality - however, if you have a better idea, you
 ###    can work it into this very script.  Please share so we can discuss it :)
 ###
+### Version 1.2 changes:
+###  * Use Pandas instead of cairoplot
 ### Version 1.1 changes:
 ###  * Relative bug probability by default
-
-# wine-model.py
-#
-# Copyright (c) 2009 Scott Ritchie
-#
-# Author: Scott Ritchie <scott@open-vote.org>
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public License
-# as published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-# USA
 
 
 import random

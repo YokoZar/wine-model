@@ -99,7 +99,7 @@ appProbability = [random.paretovariate(2.2) for x in range(numberOfApps)]
 
 totalTimeToSolve = sum(bugDifficulty.values())
 
-print(totalTimeToSolve, "total days to solve every bug, an average of", float(totalTimeToSolve)/numberOfBugs, "days per bug.")
+print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/numberOfBugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
 def pick_strategy(day, allowPrevious=True):
@@ -457,8 +457,8 @@ for x in bugDifficulty:
     else:
         reverseBugDifficulty[bugDifficulty[x]].add(x)
 
-averageBugsPerApp = float(sum([len(apps[x]) for x in apps])) / numberOfApps
-averageAppsPerUser = float(sum([len(users[x]) for x in users])) / numberOfUsers
+averageBugsPerApp = sum([len(apps[x]) for x in apps]) / numberOfApps
+averageAppsPerUser = sum([len(users[x]) for x in users]) / numberOfUsers
 print("Applications and users generated, averaging", averageBugsPerApp ,"bugs per app and", averageAppsPerUser ,"apps per user.  Starting simulation...")
 
 ###
@@ -495,10 +495,10 @@ while(True):
         progressIndicator += 0.10
 
     if not dontLog: # Log every day
-        append_to_log("%f, %f, %f, %f \n" % (float(day), float(len(bugsSolved))/numberOfBugs, float(workingApps)/numberOfApps, float(happyUsers)/numberOfUsers) )
-        #chartData["Bugs Solved"].append(float(len(bugsSolved)*100)/numberOfBugs)
-        chartData["Working Apps"].append(float(workingApps*100)/numberOfApps)
-        chartData["Happy Users"].append(float(happyUsers*100)/numberOfUsers)
+        append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/numberOfBugs, workingApps/numberOfApps, happyUsers/numberOfUsers) )
+        #chartData["Bugs Solved"].append(len(bugsSolved)*100/numberOfBugs)
+        chartData["Working Apps"].append(workingApps*100/numberOfApps)
+        chartData["Happy Users"].append(happyUsers*100/numberOfUsers)
 
     # Pick a bug from those not yet solved:
     ### TODO: This could be more elegant if they could all be called in the same way, then we could just do
@@ -552,10 +552,9 @@ while(True):
         break
 
 print("CPU time taken for simulation:", (time.clock() - timespent))
-print("Apps Working * Days:", averageApps, ", average", float(averageApps)/day, "per day.")
-print("Happy Users * Days:", averageHappy, ", average", float(averageHappy)/day, "per day.")
+print("Apps Working * Days:", averageApps, ", average", averageApps/day, "per day.")
+print("Happy Users * Days:", averageHappy, ", average", averageHappy/day, "per day.")
 # Final log entry - everything is done here
-#if not dontLog: append_to_log("%f, %i, %i, %i \n" % (float(day), numberOfApps, numberOfBugs, numberOfUsers) )
 if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 
 print("Now making chart.")

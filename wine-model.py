@@ -469,8 +469,8 @@ bugsSolved = set([]) # an (ordered?) list of integers of all bugs solved so far
 day = 0
 
 timespent = time.clock()
-averageApps = 0
-averageHappy = 0
+working_app_days = 0
+happy_user_days = 0
 hitHalfway = False
 hitFirst = False
 lastWorkedBug = False
@@ -538,9 +538,8 @@ while(True):
     day += 1 
     lastWorkedBug = bugToSolve # In case we want to work on it again tomorrow
 
-    # Increment the counters for happiness and working apps.  We multiply by bugDifficulty since we are going that many days before solving the next bug.  We don't update the bugsSolved list with check_apps until after this time.
-    averageApps += workingApps # average apps is actually a sum of apps working * days they've been working -- divide by day to get the actual average
-    averageHappy += happyUsers # TODO: not an average, rename
+    working_app_days += workingApps
+    happy_user_days += happyUsers
 
     bugDifficulty[bugToSolve] -= 1
     if bugDifficulty[bugToSolve] <= 0:
@@ -552,8 +551,8 @@ while(True):
         break
 
 print("CPU time taken for simulation:", (time.clock() - timespent))
-print("Apps Working * Days:", averageApps, ", average", averageApps/day, "per day.")
-print("Happy Users * Days:", averageHappy, ", average", averageHappy/day, "per day.")
+print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")
+print("Happy Users * Days:", happy_user_days, ", average", happy_user_days/day, "per day.")
 # Final log entry - everything is done here
 if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 

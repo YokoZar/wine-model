@@ -70,6 +70,8 @@ import random
 import time
 from math import sqrt
 import cairoplot
+import pandas
+import matplotlib.pyplot as plt
 
 ### Basic setup
 numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
@@ -494,7 +496,7 @@ hitFirst = False
 lastWorkedBug = False
 
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
-chartData = {"Working Apps" : [], "Happy Users" : []}
+chartData = {"Working Apps" : [], "Happy Users" : []} # TODO: numpy.array!
 
 progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
 
@@ -558,7 +560,7 @@ while(True):
 
     # Increment the counters for happiness and working apps.  We multiply by bugDifficulty since we are going that many days before solving the next bug.  We don't update the bugsSolved list with check_apps until after this time.
     averageApps += workingApps # average apps is actually a sum of apps working * days they've been working -- divide by day to get the actual average
-    averageHappy += happyUsers
+    averageHappy += happyUsers # TODO: not an average, rename
 
     bugDifficulty[bugToSolve] -= 1
     if bugDifficulty[bugToSolve] <= 0:
@@ -578,6 +580,15 @@ if not dontLog: append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
 
 print "Now making chart."
 
+chart = pandas.DataFrame(chartData)
+chart.plot()
+plt.ylabel("Percentage")
+plt.xlabel("Man-hours invested")
+plt.savefig('pandasplot.svg')
+
+print "Now making old chart."
+
+# TODO: constants
 x_labels = [ "Project start", "25% bugs solved", "50% bugs solved", "75% bugs solved", "All bugs solved" ]
 y_labels = [ "0%", "25%", "50%", "75%", "100%" ]
 cairoplot.dot_line_plot( "wine-model-results", chartData, 600, 600, x_labels = x_labels, 
@@ -601,3 +612,4 @@ cairoplot.dot_line_plot( "wine-model-results", chartData, 600, 600, x_labels = x
 #                v_labels = None,  
 #                h_bounds = None,  
 #                v_bounds = None)
+

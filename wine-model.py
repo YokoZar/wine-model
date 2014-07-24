@@ -60,10 +60,12 @@ import matplotlib.pyplot as plt
 LOGFILE = 'wine-model.log'
 SOLVED = True
 
+random.seed(a=12345) #TODO: allow command-line pass to declare this (otherwise real random)
+
 ### Basic setup
 # TODO: constants == caps or make them defined by arguments parser
 numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
-#numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
+numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two numbers using a uniform distribution
 # Set this to True if you want to ignore the above pre-set number of bugs and instead use the alternative App Maker (see bug probability below)
 useAlternativeAppMaker = True
@@ -120,19 +122,19 @@ def pick_strategy(day, allowPrevious=True):
     #if allowPrevious:
         #return "pickPrevious" 
     ### There are 12 normal strategies to choose from
-        #return pick_random_app
-        #return pick_from_specific_unsolved_app
-        #return pick_nearest_done_app
-        #return pick_random_bug
-        #return pick_next_bug
-        #return pick_specific_from_most_popular_app
-        #return pick_random_from_most_popular_app
-        #return pick_from_most_common_by_feature
-        #return pick_easiest
-        #return pick_random_user
-        #return pick_first_unhappy_user
-        #return pick_random_least_unhappy_user
-        #return pick_first_least_unhappy_user
+    #return pick_random_app
+    #return pick_from_specific_unsolved_app
+    #return pick_nearest_done_app
+    #return pick_random_bug
+    #return pick_specific_from_all_bugs
+    #return pick_specific_from_most_popular_app
+    #return pick_random_from_most_popular_app
+    #return pick_from_most_common_by_feature
+    #return pick_easiest
+    #return pick_random_user
+    #return pick_first_unhappy_user
+    #return pick_random_least_unhappy_user
+    #return pick_first_least_unhappy_user
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
@@ -217,17 +219,14 @@ def make_app(probability, bugs):
                 break # keep trying until we succeed
     return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.
 
-# TODO: decorate as strategy; check for speed
-def pick_next_bug(bugsSolved):
-    """Picks the smallest bug number not in the bugsSolved list
-    Input: bugsSolved
-    """
-    x = 0 # return 0 if we can, otherwise we have to keep adding 1 until we're not in bugsSolved
-    while(True):
+# TODO: can be sped up by making it a generator
+def pick_specific_from_all_bugs():
+    """Picks the smallest bug number not in the bugsSolved list"""
+    for x in range(numberOfBugs):
         if x not in bugsSolved: return x
-        x += 1
 
 # TODO: decorate as strategy; check for speed
+# pick_random_from_all_bugs():
 def pick_random_bug(bugsSolved, numberOfBugs):
     """Picks a new bug not in the bugsSolved list at random
     Inputs:
@@ -242,12 +241,13 @@ def pick_random_bug(bugsSolved, numberOfBugs):
     return random.choice([x for x in range(numberOfBugs) if not x in bugsSolved])
 
 # TODO: decorate as strategy; check for speed
+# TODO: fallback to random
 def pick_random_app(bugsSolved, apps):
-    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through check_apps.  If all apps are solved, returns pick_next_bug
+    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through check_apps.
     """
     unsolvedApps = [a for a in apps if not apps[a] is True] # Exclude apps that are set to True because already solved 
     if unsolvedApps == []: # all apps are solved
-        return pick_next_bug(bugsSolved)
+        return pick_specific_from_all_bugs()
     appToSolve = apps[random.choice(unsolvedApps)]
     return random.choice([y for y in appToSolve if not y in bugsSolved]) 
 
@@ -312,14 +312,14 @@ def pick_first_unsolved_app(bugsSolved, apps):
         if not apps[x] is True: #Note that this will only occur when apps[x] is a list (Or frozenset), which is what we want
             lowest = x
     if lowest: return random.choice([x for x in apps[lowest] if not x in bugsSolved])
-    else: return pick_next_bug(bugsSolved) # occurs when all apps are solved
+    else: return pick_specific_from_all_bugs() # occurs when all apps are solved
 
 #@strategy TODO
 def pick_from_specific_unsolved_app(bugsSolved: set, apps: dict) -> int:
     for app,bugs in apps.items():
         if bugs is not SOLVED:
             return random.choice(list(bugs))
-    return pick_next_bug(bugsSolved) # occurs when all apps are solved
+    return pick_specific_from_all_bugs() # occurs when all apps are solved
 
 # TODO: decorate as strategy; check for speed
 def pick_nearest_done_app(bugsSolved, apps):
@@ -330,7 +330,7 @@ def pick_nearest_done_app(bugsSolved, apps):
         bestApp = apps[openBugCount[min(openBugCount)]] # The one with the smallest open bugs is the best app
         return random.choice([x for x in bestApp if not x in bugsSolved])
     else: # openBugCount is empty, all apps are solved, so any bug will work fine:
-        return pick_next_bug(bugsSolved)
+        return pick_specific_from_all_bugs()
 
 def prioritize(goals: dict, total_tasks: int):
     count = {task:0 for task in range(total_tasks)}
@@ -343,14 +343,16 @@ def prioritize(goals: dict, total_tasks: int):
 def bugs_by_frequency_in_features_generator():
     for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
         while bug not in bugsSolved: yield bug
-bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
 
 def apps_by_popularity_generator():
     for app in prioritize(goals=users, total_tasks=numberOfApps):
         while apps[app] is not SOLVED: yield app
+
+# These are nonlocal instances of the generators in order to preserve their state
+bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
 apps_by_popularity = apps_by_popularity_generator()
 
-def pick_from_most_common_by_feature():
+def pick_from_most_common_by_feature(): # TODO: label Specific?
     """Picks the bug that is the most common among all the unfinished features"""
     return next(bugs_by_frequency_in_features)
 
@@ -473,8 +475,8 @@ while(True):
         bugToSolve = pick_random_bug(bugsSolved, numberOfBugs)
     if strategy == pick_from_most_common_by_feature:
         bugToSolve = pick_from_most_common_by_feature()
-    if strategy == pick_next_bug:
-        bugToSolve = pick_next_bug(bugsSolved)
+    if strategy == pick_specific_from_all_bugs:
+        bugToSolve = pick_specific_from_all_bugs()
     if strategy == pick_specific_from_most_popular_app:
         bugToSolve = pick_specific_from_most_popular_app()
     if strategy == pick_random_from_most_popular_app:

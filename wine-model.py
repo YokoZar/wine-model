@@ -123,13 +123,13 @@ def pick_strategy(day, allowPrevious=True):
         #return "pickPrevious" 
     ### There are 12 normal strategies to choose from
     #return pick_random_app
-    #return pick_from_specific_unsolved_app
+    #return pick_random_from_specific_unsolved_app
     #return pick_nearest_done_app
     #return pick_random_from_all_bugs
     #return pick_specific_from_all_bugs
     #return pick_specific_from_most_popular_app
     #return pick_random_from_most_popular_app
-    #return pick_from_most_common_by_feature
+    #return pick_specific_from_most_common_by_feature
     #return pick_easiest
     #return pick_random_user
     #return pick_first_unhappy_user
@@ -138,12 +138,12 @@ def pick_strategy(day, allowPrevious=True):
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
-        return pick_from_most_common_by_feature
+        return pick_specific_from_most_common_by_feature
     ### "Realistic" model: do different plausible strategies for each day of the week
     if day %7 == 6: return pick_random_from_most_popular_app
-    if day %7 == 5: return pick_from_most_common_by_feature
+    if day %7 == 5: return pick_specific_from_most_common_by_feature
     if day %7 == 4: return pick_nearest_done_app
-    if day %7 == 3: return pick_from_specific_unsolved_app
+    if day %7 == 3: return pick_random_from_specific_unsolved_app
     if day %7 == 2: return pick_first_unhappy_user
     if day %7 == 1: return pick_easiest
     if day %7 == 0: return pick_first_least_unhappy_user
@@ -318,12 +318,11 @@ def pick_first_unsolved_app(bugsSolved, apps):
     if lowest: return random.choice([x for x in apps[lowest] if not x in bugsSolved])
     else: return pick_specific_from_all_bugs() # occurs when all apps are solved
 
-#@strategy TODO
-def pick_from_specific_unsolved_app(bugsSolved: set, apps: dict) -> int:
+def pick_random_from_specific_unsolved_app():
     for app,bugs in apps.items():
         if bugs is not SOLVED:
-            return random.choice(list(bugs))
-    return pick_specific_from_all_bugs() # occurs when all apps are solved
+            return random.sample(bugs,1)[0]
+    return pick_random_from_all_bugs() # occurs when all apps are solved
 
 # TODO: decorate as strategy; check for speed
 def pick_nearest_done_app(bugsSolved, apps):
@@ -356,7 +355,7 @@ def apps_by_popularity_generator():
 bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
 apps_by_popularity = apps_by_popularity_generator()
 
-def pick_from_most_common_by_feature(): # TODO: label Specific?
+def pick_specific_from_most_common_by_feature():
     """Picks the bug that is the most common among all the unfinished features"""
     return next(bugs_by_frequency_in_features)
 
@@ -368,7 +367,7 @@ def pick_specific_from_most_popular_app():
 def pick_random_from_most_popular_app():
     """Picks a random bug from the most popular app"""
     app = next(apps_by_popularity)
-    return random.choice(list(apps[app]))
+    return random.sample(apps[app],1)[0]
 
 # TODO: decorate as strategy; check for speed
 def pick_easiest(bugsSolved, reverseBugDifficulty):
@@ -471,14 +470,14 @@ while(True):
             bugToSolve = lastWorkedBug
     if strategy == pick_random_app:
         bugToSolve = pick_random_app(bugsSolved, apps)
-    if strategy == pick_from_specific_unsolved_app:
-        bugToSolve = pick_from_specific_unsolved_app(bugsSolved, apps)
+    if strategy == pick_random_from_specific_unsolved_app:
+        bugToSolve = pick_random_from_specific_unsolved_app()
     if strategy == pick_nearest_done_app:
         bugToSolve = pick_nearest_done_app(bugsSolved, apps)
     if strategy == pick_random_from_all_bugs:
         bugToSolve = pick_random_from_all_bugs()
-    if strategy == pick_from_most_common_by_feature:
-        bugToSolve = pick_from_most_common_by_feature()
+    if strategy == pick_specific_from_most_common_by_feature:
+        bugToSolve = pick_specific_from_most_common_by_feature()
     if strategy == pick_specific_from_all_bugs:
         bugToSolve = pick_specific_from_all_bugs()
     if strategy == pick_specific_from_most_popular_app:

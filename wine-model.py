@@ -129,6 +129,7 @@ def pick_strategy(day, allowPrevious=True):
     # pick_specific_from_specific_unsolved_app pick_random_from_specific_unsolved_app
     # pick_specific_from_most_common_by_feature
     # pick_specific_from_most_popular_app pick_random_from_most_popular_app
+    # pick_specific_from_easiest_bugs pick_random_from_easiest_bugs
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
@@ -139,7 +140,7 @@ def pick_strategy(day, allowPrevious=True):
     if day %7 == 4: return random.choice(strategies) #TODO: pick_random_from_easiest_app pick_nearest_done_app
     if day %7 == 3: return pick_random_from_specific_unsolved_app
     if day %7 == 2: return pick_random_from_specific_user
-    if day %7 == 1: return random.choice(strategies) #TODO: pick_random_from_easiest_bug
+    if day %7 == 1: return pick_random_from_easiest_bugs
     if day %7 == 0: return random.choice(strategies) #pick_first_least_unhappy_user
 
 
@@ -376,24 +377,27 @@ def pick_random_from_most_popular_app():
     app = next(apps_by_popularity)
     return random.sample(apps[app],1)[0]
 
-# TODO: pick_random_from_easiest_bug
-# TODO: pick_specific_from_easiest_bug
+@strategy
+def pick_random_from_easiest_bugs():
+    easiest_difficulty = None
+    for bug, difficulty in bugDifficulty.items():
+        if 0 < difficulty and (easiest_difficulty == None or difficulty < easiest_difficulty):
+            candidates = {bug}
+            easiest_difficulty = difficulty
+        elif 0 < difficulty == easiest_difficulty:
+            candidates.add(bug)
+    return random.sample(candidates,1)[0]
 
-# TODO: decorate as strategy; check for speed
-def pick_easiest(bugsSolved, reverseBugDifficulty):
-    """Returns the unsolved bug with the lowest difficulty
-    Input:
-        bugsSolved
-        reverseBugDifficulty, a dictionary with key:difficulty to value: set(bugs with this difficulty)
-    """
-    easiestDifficulty = min(reverseBugDifficulty)
-    while(True):
-        easiest = reverseBugDifficulty[easiestDifficulty]
-        if easiest <= bugsSolved: #if every bug in easiest set is in the bugsSolved set then we've already solved the apparent minimum, erase it and try again
-            del(reverseBugDifficulty[easiestDifficulty])
-            easiestDifficulty = min(reverseBugDifficulty)
-        else: # there is some element in easiest not in bugsSolved
-            return random.choice(list(easiest - bugsSolved))
+@strategy
+def pick_specific_from_easiest_bugs():
+    easiest_difficulty = None
+    for bug, difficulty in bugDifficulty.items():
+        if 0 < difficulty <= 1: # Doesn't get any easier
+            return bug
+        if difficulty > 1 and (easiest_difficulty is None or difficulty < easiest_difficulty):
+            easiest_difficulty = difficulty
+            easiest_bug = bug
+    return easiest_bug
 
 ###
 ### Helper functions
@@ -436,13 +440,6 @@ else:
     apps = {x:make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 
 users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(numberOfUsers)} #Users will have from minUserApps to maxUserApps, uniformly distributed
-
-reverseBugDifficulty = {} #for speeding up the pick_easiest function.  This is a dictionary of key bugdifficulty to value set(apps that have tha difficulty)
-for x in bugDifficulty:
-    if bugDifficulty[x] not in reverseBugDifficulty:
-        reverseBugDifficulty[bugDifficulty[x]]=set([x])
-    else:
-        reverseBugDifficulty[bugDifficulty[x]].add(x)
 
 averageBugsPerApp = sum([len(apps[x]) for x in apps]) / numberOfApps
 averageAppsPerUser = sum([len(users[x]) for x in users]) / numberOfUsers

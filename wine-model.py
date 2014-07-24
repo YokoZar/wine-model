@@ -60,7 +60,7 @@ import matplotlib.pyplot as plt
 LOGFILE = 'wine-model.log'
 SOLVED = True
 
-random.seed(a=12345) #TODO: allow command-line pass to declare this (otherwise real random)
+random.seed(a=123456) #TODO: allow command-line pass to declare this (otherwise real random)
 
 ### Basic setup
 # TODO: constants == caps or make them defined by arguments parser
@@ -137,7 +137,7 @@ def pick_strategy(day, allowPrevious=True):
     ### "Realistic" model: do different plausible strategies for each day of the week
     if day %7 == 6: return pick_random_from_most_popular_app
     if day %7 == 5: return pick_specific_from_most_common_by_feature
-    if day %7 == 4: return random.choice(strategies) #TODO: pick_random_from_easiest_app pick_nearest_done_app
+    if day %7 == 4: return pick_random_from_easiest_app
     if day %7 == 3: return pick_random_from_specific_unsolved_app
     if day %7 == 2: return pick_random_from_specific_user
     if day %7 == 1: return pick_random_from_easiest_bugs
@@ -280,20 +280,21 @@ def pick_random_from_specific_unsolved_app():
     except StopIteration: 
         return pick_random_from_all_bugs() 
 
-# TODO: pick_specific_from_easiest_app
-# TODO: pick_random_from_easiest_app
+@strategy
+def pick_specific_from_easiest_app():
+    try:
+        app = next(apps_by_easiest)
+        return min(apps[app])
+    except StopIteration: 
+        return pick_specific_from_all_bugs() 
 
-# TODO: decorate as strategy; check for speed
-#def pick_nearest_done_app(bugsSolved, apps):
-def pick_nearest_done_app():
-    """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the app with the least bugs remaining.  We assume that there is at least one app and that there are no apps with zero unsolved bugs.
-    """
-    openBugCount = dict ( (len([y for y in apps[x] if y not in bugsSolved]), x) for x in apps if not apps[x] == True) # Create a dictionary of key: open bugs to value: app number, excluding ones that are solved
-    if openBugCount: # in case all bugs are solved already
-        bestApp = apps[openBugCount[min(openBugCount)]] # The one with the smallest open bugs is the best app
-        return random.choice([x for x in bestApp if not x in bugsSolved])
-    else: # openBugCount is empty, all apps are solved, so any bug will work fine:
-        return pick_specific_from_all_bugs()
+@strategy
+def pick_random_from_easiest_app():
+    try:
+        app = next(apps_by_easiest)
+        return random.sample(apps[app],1)[0]
+    except StopIteration: 
+        return pick_random_from_all_bugs() 
 
 @strategy
 def pick_specific_from_most_common_by_feature():
@@ -394,6 +395,24 @@ def tasks_by_number_generator(tasks: set):
     for task in tasks:
         while tasks[task] is not SOLVED: yield task
 
+def tasks_by_easiest_generator(goals: dict, total_goals: int):
+    """Generator to yield goals based on which has the fewest tasks remaining"""
+    remaining_goals = set(range(total_goals))
+    while remaining_goals:
+        easiest_difficulty = None
+        for goal in remaining_goals.copy():
+            if goals[goal] is SOLVED:
+                remaining_goals.remove(goal)
+                continue
+            difficulty = len(goals[goal])
+            if difficulty == 1: # Doesn't get any easier
+                yield goal
+                break
+            if easiest_difficulty is None or difficulty < easiest_difficulty:
+                easiest_difficulty = difficulty
+                easiest_goal = goal
+        if easiest_difficulty is not None: yield easiest_goal
+
 def bugs_by_popularity_in_apps_generator():
     for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
         while bug not in bugsSolved: yield bug
@@ -408,7 +427,7 @@ def bugs_by_number_generator():
 
 def random_bugs_generator():
     open_bugs = set(range(numberOfBugs)) - bugsSolved
-    while(True):
+    while True:
         open_bugs -= bugsSolved
         yield random.sample(open_bugs,1)[0]
 
@@ -420,21 +439,16 @@ def random_apps_generator():
             unsolved_apps.remove(app)
         else:
             yield app
-
-
-# TODO:
-#def random_unhappy_users_generator(): # TODO: DRY with unsolved_app_generator
-#def random_almost_happy_users():
-#def almost_happy_users_by_number():
+#def random_users_generator(): # TODO: DRY with random_apps_generator
 
 # These are nonlocal instances of the generators in order to preserve their state
 bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
 bugs_by_number = bugs_by_number_generator()
 apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
 apps_by_number = tasks_by_number_generator(apps)
-#apps_by_easiest # TODO
+apps_by_easiest = tasks_by_easiest_generator(apps, numberOfApps)
 users_by_number = tasks_by_number_generator(users)
-#users_by_easiest  # TODO
+users_by_easiest = tasks_by_easiest_generator(users, numberOfUsers)
 random_bugs = random_bugs_generator()
 random_apps = random_apps_generator()
 #random_users  # TODO

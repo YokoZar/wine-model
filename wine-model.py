@@ -117,26 +117,18 @@ def pick_strategy(day, allowPrevious=True):
     """ Returns a strategy function based on the day.  This is meant to be modified by user.
     If allowPrevious is set to False, then a strategy that doesn't always return a valid bug should never be picked.
     """
+    #return random.choice(strategies)
     ### This will work on the previously worked on bug until it's done.
     ### Uncomment these two lines if you want to avoid picking a new strategy until each bug is solved.
     #if allowPrevious:
         #return "pickPrevious" 
-    #return pick_random_from_random_app
-    # TODO: pick_specific_from_random_app
-    #return pick_random_from_specific_unsolved_app
-    #return pick_specific_from_specific_unsolved_app
-    return pick_random_from_specific_user
-    #return pick_nearest_done_app
-    #return pick_random_from_all_bugs
-    #return pick_specific_from_all_bugs
-    #return pick_specific_from_most_popular_app
-    #return pick_random_from_most_popular_app
-    #return pick_specific_from_most_common_by_feature
-    #return pick_easiest
-    #return pick_random_user
-    #return pick_first_unhappy_user
-    #return pick_random_least_unhappy_user
-    #return pick_first_least_unhappy_user
+    # Available strategies:
+    # pick_specific_from_all_bugs pick_random_from_all_bugs
+    # pick_specific_from_random_app pick_random_from_random_app
+    # pick_specific_from_specific_user pick_random_from_specific_user
+    # pick_specific_from_specific_unsolved_app pick_random_from_specific_unsolved_app
+    # pick_specific_from_most_common_by_feature
+    # pick_specific_from_most_popular_app pick_random_from_most_popular_app
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
@@ -144,11 +136,11 @@ def pick_strategy(day, allowPrevious=True):
     ### "Realistic" model: do different plausible strategies for each day of the week
     if day %7 == 6: return pick_random_from_most_popular_app
     if day %7 == 5: return pick_specific_from_most_common_by_feature
-    if day %7 == 4: return pick_nearest_done_app
+    if day %7 == 4: return random.choice(strategies) #TODO: pick_random_from_easiest_app pick_nearest_done_app
     if day %7 == 3: return pick_random_from_specific_unsolved_app
-    if day %7 == 2: return pick_first_unhappy_user
-    if day %7 == 1: return pick_easiest
-    if day %7 == 0: return pick_first_least_unhappy_user
+    if day %7 == 2: return pick_random_from_specific_user
+    if day %7 == 1: return random.choice(strategies) #TODO: pick_random_from_easiest_bug
+    if day %7 == 0: return random.choice(strategies) #pick_first_least_unhappy_user
 
 
 ### ----------------------------------------------------------------------------
@@ -214,14 +206,22 @@ def make_app(probability, bugs):
 ### Strategies
 ###
 
+strategies = []
+def strategy(function):
+    strategies.append(function)
+    return function
+
+@strategy
 def pick_specific_from_all_bugs():
     """Picks the smallest bug number not in the bugsSolved list"""
     return next(bugs_by_number)
 
+@strategy
 def pick_random_from_all_bugs():
     """Picks a random unsolved bug"""
     return next(random_bugs)
 
+@strategy
 def pick_specific_from_random_app():
     """Picks the smallest bug from a random app"""
     try:
@@ -230,6 +230,7 @@ def pick_specific_from_random_app():
         return pick_specific_from_all_bugs()
     return min(apps[app])
 
+@strategy
 def pick_random_from_random_app():
     """Picks a random bug from a random app"""
     try:
@@ -238,15 +239,7 @@ def pick_random_from_random_app():
         return pick_random_from_all_bugs()
     return random.sample(apps[app],1)[0]
 
-def pick_random_from_specific_user():
-    """Picks a random bug from a random app from the smallest user"""
-    try:
-        user = next(users_by_number)
-    except StopIteration:
-        return pick_random_from_random_app()
-    app = random.sample(users[user],1)[0]
-    return random.sample(apps[app],1)[0]
-
+@strategy
 def pick_specific_from_specific_user():
     """Picks the smallest bug from the smallest app from the smallest user"""
     try:
@@ -255,6 +248,16 @@ def pick_specific_from_specific_user():
         return pick_specific_from_specific_app()
     app = min(users[user])
     return min(apps[app])
+
+@strategy
+def pick_random_from_specific_user():
+    """Picks a random bug from a random app from the smallest user"""
+    try:
+        user = next(users_by_number)
+    except StopIteration:
+        return pick_random_from_random_app()
+    app = random.sample(users[user],1)[0]
+    return random.sample(apps[app],1)[0]
 
 # TODO: reimplement
 #def pick_random_from_random_user    # random bug?  random app?
@@ -325,13 +328,7 @@ def pick_first_least_unhappy_user(bugsSolved, apps, users):
     limitedApps = {x:apps[x] for x in thisUser} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
-def pick_random_from_specific_unsolved_app():
-    try:
-        app = next(apps_by_number)
-        return random.sample(apps[app],1)[0]
-    except StopIteration: 
-        return pick_random_from_all_bugs() 
-
+@strategy
 def pick_specific_from_specific_unsolved_app():
     try:
         app = next(apps_by_number)
@@ -339,8 +336,20 @@ def pick_specific_from_specific_unsolved_app():
     except StopIteration: 
         return pick_specific_from_all_bugs() 
 
+@strategy
+def pick_random_from_specific_unsolved_app():
+    try:
+        app = next(apps_by_number)
+        return random.sample(apps[app],1)[0]
+    except StopIteration: 
+        return pick_random_from_all_bugs() 
+
+# TODO: pick_specific_from_easiest_app
+# TODO: pick_random_from_easiest_app
+
 # TODO: decorate as strategy; check for speed
-def pick_nearest_done_app(bugsSolved, apps):
+#def pick_nearest_done_app(bugsSolved, apps):
+def pick_nearest_done_app():
     """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the app with the least bugs remaining.  We assume that there is at least one app and that there are no apps with zero unsolved bugs.
     """
     openBugCount = dict ( (len([y for y in apps[x] if y not in bugsSolved]), x) for x in apps if not apps[x] == True) # Create a dictionary of key: open bugs to value: app number, excluding ones that are solved
@@ -350,19 +359,25 @@ def pick_nearest_done_app(bugsSolved, apps):
     else: # openBugCount is empty, all apps are solved, so any bug will work fine:
         return pick_specific_from_all_bugs()
 
+@strategy
 def pick_specific_from_most_common_by_feature():
     """Picks the bug that is the most common among all the unfinished features"""
     return next(bugs_by_frequency_in_features)
 
+@strategy
 def pick_specific_from_most_popular_app():
     """Picks a specific bug from the most popular app"""
     app = next(apps_by_popularity)
     return list(apps[app])[0]
 
+@strategy
 def pick_random_from_most_popular_app():
     """Picks a random bug from the most popular app"""
     app = next(apps_by_popularity)
     return random.sample(apps[app],1)[0]
+
+# TODO: pick_random_from_easiest_bug
+# TODO: pick_specific_from_easiest_bug
 
 # TODO: decorate as strategy; check for speed
 def pick_easiest(bugsSolved, reverseBugDifficulty):
@@ -558,6 +573,9 @@ while(True):
         print("All bugs solved on day", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
+
+# TODO: make optional command line output
+print("Available strategies:", " ".join(f.__name__ for f in strategies))
 
 print("Time taken for simulation:", (time.clock() - timespent))
 print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")

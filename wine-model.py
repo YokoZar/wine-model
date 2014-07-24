@@ -519,42 +519,13 @@ while(True):
     chartData["Happy Users"].append(happyUsers*100/numberOfUsers)
 
     # Pick a bug from those not yet solved:
-    ### TODO: This could be more elegant if they could all be called in the same way, then we could just do
-    # strategy(bugsSolved, apps, numberOfBugs, priority) ###
     strategy, backupStrategy = pick_two_strategies(day)
     if strategy == "pickPrevious": # If the strategy is pickPrevious, then by default we just use the previous bug to solve; otherwise we need to use the backup strategy
         if lastWorkedBug is False: # note we do not test lastWorkedBug == 0 in case we just solved bug number 0
             strategy = backupStrategy
         else:
             bugToSolve = lastWorkedBug
-    if strategy == pick_random_from_specific_user:
-        bugToSolve = pick_random_from_specific_user()
-    if strategy == pick_random_from_random_app:
-        bugToSolve = pick_random_from_random_app()
-    if strategy == pick_random_from_specific_unsolved_app:
-        bugToSolve = pick_random_from_specific_unsolved_app()
-    if strategy == pick_specific_from_specific_unsolved_app:
-        bugToSolve = pick_specific_from_specific_unsolved_app()
-    if strategy == pick_nearest_done_app:
-        bugToSolve = pick_nearest_done_app(bugsSolved, apps)
-    if strategy == pick_random_from_all_bugs:
-        bugToSolve = pick_random_from_all_bugs()
-    if strategy == pick_specific_from_most_common_by_feature:
-        bugToSolve = pick_specific_from_most_common_by_feature()
-    if strategy == pick_specific_from_all_bugs:
-        bugToSolve = pick_specific_from_all_bugs()
-    if strategy == pick_specific_from_most_popular_app:
-        bugToSolve = pick_specific_from_most_popular_app()
-    if strategy == pick_random_from_most_popular_app:
-        bugToSolve = pick_random_from_most_popular_app()
-    if strategy == pick_easiest:
-        bugToSolve = pick_easiest(bugsSolved, reverseBugDifficulty)
-    #if strategy == pick_first_unhappy_user:
-    #    bugToSolve = pick_first_unhappy_user(bugsSolved, apps, users)
-    #if strategy == pick_random_least_unhappy_user:
-    #    bugToSolve = pick_random_least_unhappy_user(bugsSolved, apps, users)
-    #if strategy == pick_first_least_unhappy_user:
-    #    bugToSolve = pick_first_least_unhappy_user(bugsSolved, apps, users)
+    bugToSolve = strategy()
 
     # And take bugDifficulty days to solve it
     day += 1 

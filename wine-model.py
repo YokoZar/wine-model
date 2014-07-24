@@ -160,19 +160,8 @@ def pick_two_strategies(day):
     """
     return pick_strategy(day), pick_strategy(day, allowPrevious=False)
 
-# Start the log
-if enable_log:
-    with open(LOGFILE, 'w') as logfile:
-        logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
-            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
-
-def append_to_log(entry):
-    if enable_log:
-        with open(LOGFILE, 'a') as logfile:
-            logfile.write(entry)
-
 ###
-### Program logic below
+### Setup functions
 ###
 
 # TODO: reconsider the naming here
@@ -223,23 +212,10 @@ def make_app(probability, bugs):
 ### Strategies
 ###
 
-def pick_specific_from_all_bugs_generator():
-    for bug in range(numberOfBugs):
-        while bug not in bugsSolved: yield bug
-
-bugs_by_number = pick_specific_from_all_bugs_generator()
 def pick_specific_from_all_bugs():
     """Picks the smallest bug number not in the bugsSolved list"""
-    return next(bugs_by_number)
+    return next(open_bugs_by_number)
 
-def pick_random_from_all_bugs_generator():
-    all_bugs = set(range(numberOfBugs))
-    open_bugs = all_bugs - bugsSolved
-    while(True):
-        open_bugs -= bugsSolved
-        yield random.sample(open_bugs,1)[0]
-
-random_open_bugs = pick_random_from_all_bugs_generator()
 def pick_random_from_all_bugs():
     """Picks a random unsolved bug"""
     return next(random_open_bugs)
@@ -335,26 +311,6 @@ def pick_nearest_done_app(bugsSolved, apps):
     else: # openBugCount is empty, all apps are solved, so any bug will work fine:
         return pick_specific_from_all_bugs()
 
-def prioritize(goals: dict, total_tasks: int):
-    count = {task:0 for task in range(total_tasks)}
-    for goal, tasks in goals.items():
-        if tasks is not SOLVED:
-            for task in tasks:
-                count[task] += 1
-    yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
-
-def bugs_by_frequency_in_features_generator():
-    for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
-        while bug not in bugsSolved: yield bug
-
-def apps_by_popularity_generator():
-    for app in prioritize(goals=users, total_tasks=numberOfApps):
-        while apps[app] is not SOLVED: yield app
-
-# These are nonlocal instances of the generators in order to preserve their state
-bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
-apps_by_popularity = apps_by_popularity_generator()
-
 def pick_specific_from_most_common_by_feature():
     """Picks the bug that is the most common among all the unfinished features"""
     return next(bugs_by_frequency_in_features)
@@ -385,6 +341,51 @@ def pick_easiest(bugsSolved, reverseBugDifficulty):
         else: # there is some element in easiest not in bugsSolved
             return random.choice(list(easiest - bugsSolved))
 
+###
+### Helper functions and state variables for strategies
+###
+
+def prioritize(goals: dict, total_tasks: int):
+    count = {task:0 for task in range(total_tasks)}
+    for goal, tasks in goals.items():
+        if tasks is not SOLVED:
+            for task in tasks:
+                count[task] += 1
+    yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
+
+def bugs_by_frequency_in_features_generator():
+    for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
+        while bug not in bugsSolved: yield bug
+
+def apps_by_popularity_generator():
+    for app in prioritize(goals=users, total_tasks=numberOfApps):
+        while apps[app] is not SOLVED: yield app
+
+def open_bugs_by_number_generator():
+    for bug in range(numberOfBugs):
+        while bug not in bugsSolved: yield bug
+
+def random_open_bugs_generator():
+    open_bugs = set(range(numberOfBugs)) - bugsSolved
+    while(True):
+        open_bugs -= bugsSolved
+        yield random.sample(open_bugs,1)[0]
+
+# These are nonlocal instances of the generators in order to preserve their state
+bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
+apps_by_popularity = apps_by_popularity_generator()
+open_bugs_by_number = open_bugs_by_number_generator()
+random_open_bugs = random_open_bugs_generator()
+
+###
+###
+###
+
+def append_to_log(entry):
+    if enable_log:
+        with open(LOGFILE, 'a') as logfile:
+            logfile.write(entry)
+
 def check_apps(apps: dict, bugsSolved: set) -> int:
     """Checks the applications dictionary for newly working applications"""
     solved = 0
@@ -402,6 +403,16 @@ def check_apps(apps: dict, bugsSolved: set) -> int:
 ###
 ### Simulation setup
 ###
+
+# Start the log
+if enable_log:
+    with open(LOGFILE, 'w') as logfile:
+        logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
+            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
+
+#TODO: if enable_log erase old logfile
+#append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
+#            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
 if useAlternativeAppMaker:
     apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed

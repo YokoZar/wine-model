@@ -125,7 +125,7 @@ def pick_strategy(day, allowPrevious=True):
     #return pick_random_app
     #return pick_from_specific_unsolved_app
     #return pick_nearest_done_app
-    #return pick_random_bug
+    #return pick_random_from_all_bugs
     #return pick_specific_from_all_bugs
     #return pick_specific_from_most_popular_app
     #return pick_random_from_most_popular_app
@@ -219,26 +219,30 @@ def make_app(probability, bugs):
                 break # keep trying until we succeed
     return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.
 
-# TODO: can be sped up by making it a generator
+###
+### Strategies
+###
+
+def pick_specific_from_all_bugs_generator():
+    for bug in range(numberOfBugs):
+        while bug not in bugsSolved: yield bug
+
+bugs_by_number = pick_specific_from_all_bugs_generator()
 def pick_specific_from_all_bugs():
     """Picks the smallest bug number not in the bugsSolved list"""
-    for x in range(numberOfBugs):
-        if x not in bugsSolved: return x
+    return next(bugs_by_number)
 
-# TODO: decorate as strategy; check for speed
-# pick_random_from_all_bugs():
-def pick_random_bug(bugsSolved, numberOfBugs):
-    """Picks a new bug not in the bugsSolved list at random
-    Inputs:
-        bugsSolved: a list of integers representing bugs already solved
-        numberOfBugs: total possible number of bugs
-    """
-    #while(True):
-    #    x = random.randint(0,numberOfBugs - 1)
-    #    if not x in bugsSolved:
-    #        return x
-    #This above is technically equivalent but is really, really slow
-    return random.choice([x for x in range(numberOfBugs) if not x in bugsSolved])
+def pick_random_from_all_bugs_generator():
+    all_bugs = set(range(numberOfBugs))
+    open_bugs = all_bugs - bugsSolved
+    while(True):
+        open_bugs -= bugsSolved
+        yield random.sample(open_bugs,1)[0]
+
+random_open_bugs = pick_random_from_all_bugs_generator()
+def pick_random_from_all_bugs():
+    """Picks a random unsolved bug"""
+    return next(random_open_bugs)
 
 # TODO: decorate as strategy; check for speed
 # TODO: fallback to random
@@ -471,8 +475,8 @@ while(True):
         bugToSolve = pick_from_specific_unsolved_app(bugsSolved, apps)
     if strategy == pick_nearest_done_app:
         bugToSolve = pick_nearest_done_app(bugsSolved, apps)
-    if strategy == pick_random_bug:
-        bugToSolve = pick_random_bug(bugsSolved, numberOfBugs)
+    if strategy == pick_random_from_all_bugs:
+        bugToSolve = pick_random_from_all_bugs()
     if strategy == pick_from_most_common_by_feature:
         bugToSolve = pick_from_most_common_by_feature()
     if strategy == pick_specific_from_all_bugs:
@@ -503,13 +507,14 @@ while(True):
     if bugDifficulty[bugToSolve] <= 0:
         bugsSolved.add(bugToSolve)
         lastWorkedBug = False # this is the number of the bug we last worked on, in case we want to do it again
+    # TODO: warn if <= -1 as that means we did redundant work which shouldn't be a thing
 
     if len(bugsSolved) == numberOfBugs:
         print("All bugs solved on day", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
 
-print("CPU time taken for simulation:", (time.clock() - timespent))
+print("Time taken for simulation:", (time.clock() - timespent))
 print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")
 print("Happy Users * Days:", happy_user_days, ", average", happy_user_days/day, "per day.")
 

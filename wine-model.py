@@ -121,8 +121,8 @@ def pick_strategy(day, allowPrevious=True):
     ### Uncomment these two lines if you want to avoid picking a new strategy until each bug is solved.
     #if allowPrevious:
         #return "pickPrevious" 
-    ### There are 12 normal strategies to choose from
-    #return pick_random_app
+    return pick_random_from_random_app
+    # TODO: pick_specific_from_random_app
     #return pick_random_from_specific_unsolved_app
     #return pick_specific_from_specific_unsolved_app
     #return pick_nearest_done_app
@@ -221,16 +221,34 @@ def pick_random_from_all_bugs():
     """Picks a random unsolved bug"""
     return next(random_open_bugs)
 
+def pick_random_from_random_app():
+    try:
+        app = next(random_unsolved_apps)
+        return random.sample(apps[app],1)[0]
+    except StopIteration:
+        return pick_random_from_all_bugs()
+
+# Helper
+# TODO: pick_specific_from_random_app
+# TODO: reimplement
+#def pick_random_from_random_user    # random bug?  random app?
+#def pick_specific_from_random_user  # 1st app 1st bug
+#def pick_random_from_specific_user
+#def pick_specific_from_specific_user
+#def pick_random_from_random_almost_happy_user # TODO: almost happy == fewest apps
+#def pick_specific_from_specific_almost_happy_user # TODO
+
+
 # TODO: decorate as strategy; check for speed
 # TODO: fallback to random
-def pick_random_app(bugsSolved, apps):
-    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through check_apps.
-    """
-    unsolvedApps = [a for a in apps if not apps[a] is True] # Exclude apps that are set to True because already solved 
-    if unsolvedApps == []: # all apps are solved
-        return pick_specific_from_all_bugs()
-    appToSolve = apps[random.choice(unsolvedApps)]
-    return random.choice([y for y in appToSolve if not y in bugsSolved]) 
+#def pick_random_app(bugsSolved, apps):
+#    """Picks a new bug not in the bugsSolved list by randomly selecting an app and selecting a random unsolved bug in it.  We assume that apps has been passed through check_apps.
+#    """
+#    unsolvedApps = [a for a in apps if not apps[a] is True] # Exclude apps that are set to True because already solved 
+#    if unsolvedApps == []: # all apps are solved
+#        return pick_specific_from_all_bugs()
+#    appToSolve = apps[random.choice(unsolvedApps)]
+#    return random.choice([y for y in appToSolve if not y in bugsSolved]) 
 
 # TODO: decorate as strategy; check for speed
 def pick_random_user(bugsSolved, apps, users):
@@ -238,7 +256,7 @@ def pick_random_user(bugsSolved, apps, users):
     """
     unhappyUsers = [a for a in users.keys() if not users[a] is True]
     if unhappyUsers == []: #happens when all users are happy
-        return pick_random_app(bugsSolved, apps)
+        return pick_random_from_random_app()
     thisUser = random.choice(unhappyUsers) # Gets a random unhappy user, which is a list of apps. happy users are set to True
     limitedApps = {x:apps[x] for x in users[thisUser]} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
@@ -250,7 +268,7 @@ def pick_first_unhappy_user(bugsSolved, apps, users):
     """
     unhappyUsers = [a for a in users.keys() if not users[a] is True]
     if unhappyUsers == []: #happens when all users are happy
-        return pick_random_app(bugsSolved, apps)
+        return pick_random_from_random_app()
     thisUser = unhappyUsers[0] # thisUser is a list of apps
     limitedApps = {x:apps[x] for x in users[thisUser]} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function
@@ -261,7 +279,7 @@ def pick_random_least_unhappy_user(bugsSolved, apps, users):
     """
     unhappyUsers = [users[a] for a in users.keys() if not users[a] is True] # here we are converting users from a dictionary to a list of lists of apps
     if unhappyUsers == []: #happens when all users are happy
-        return pick_random_app(bugsSolved, apps)
+        return pick_random_from_random_app()
     unhappyUsers = [ [x for x in y if not x is True] for y in unhappyUsers ] # purge all solved apps from the unhappy users
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
@@ -275,7 +293,7 @@ def pick_first_least_unhappy_user(bugsSolved, apps, users):
     """
     unhappyUsers = [users[a] for a in users.keys() if not users[a] is True] # here we are converting users from a dictionary to a list of lists of apps
     if unhappyUsers == []: #happens when all users are happy
-        return pick_random_app(bugsSolved, apps)
+        return pick_random_from_random_app()
     unhappyUsers = [ [x for x in y if not x is True] for y in unhappyUsers ] # purge all solved apps from the unhappy users
     appsLeft = min([len(x) for x in unhappyUsers])
     unhappyUsers = [x for x in unhappyUsers if len(x) == appsLeft] # purge all unhappy users with more than the minimal apps left
@@ -372,12 +390,29 @@ def apps_by_number_generator():
     for app in apps:
         while apps[app] is not SOLVED: yield app
 
+def random_unsolved_app_generator():
+    unsolved_apps = set(range(numberOfApps))
+    while unsolved_apps:
+        app = random.sample(unsolved_apps,1)[0]
+        if apps[app] is SOLVED:
+            unsolved_apps.remove(app)
+        else:
+            yield app
+
+
+# TODO:
+#def random_unhappy_users_generator(): # TODO: DRY with unsolved_app_generator
+#def unhappy_users_by_number():
+#def random_almost_happy_users():
+#def almost_happy_users_by_number():
+
 # These are nonlocal instances of the generators in order to preserve their state
 bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
 apps_by_popularity = apps_by_popularity_generator()
 open_bugs_by_number = open_bugs_by_number_generator()
 random_open_bugs = random_open_bugs_generator()
 apps_by_number = apps_by_number_generator()
+random_unsolved_apps = random_unsolved_app_generator()
 
 ###
 ###
@@ -388,6 +423,9 @@ def append_to_log(entry):
         with open(LOGFILE, 'a') as logfile:
             logfile.write(entry)
 
+# TODO: rename check_done, also used to scrub users
+# def check_done(items: dict, solved_tasks: set) -> int:
+#    """Checks a container dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
 def check_apps(apps: dict, bugsSolved: set) -> int:
     """Checks the applications dictionary for newly working applications"""
     solved = 0
@@ -446,6 +484,7 @@ lastWorkedBug = False
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
 chartData = {"Working Apps" : [], "Happy Users" : []} # TODO: numpy.array!
 
+# TODO: make this an int to avoid 0.89 from float weirdness
 progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
 
 while(True): 
@@ -453,6 +492,7 @@ while(True):
     if lastWorkedBug is False:
         workingApps = check_apps(apps,bugsSolved)
         happyUsers = check_apps(users,set([x for x in apps if apps[x] == True])) # The check_apps function can be used for users because it does the same thing
+        # TODO: refactor above to maybe not reconstruct appsSolved every time
 
     #print("Day:",day,"Working apps:",workingApps,"Bugs solved:",len(bugsSolved))
     if workingApps >= 1 and not hitFirst:
@@ -476,8 +516,8 @@ while(True):
             strategy = backupStrategy
         else:
             bugToSolve = lastWorkedBug
-    if strategy == pick_random_app:
-        bugToSolve = pick_random_app(bugsSolved, apps)
+    if strategy == pick_random_from_random_app:
+        bugToSolve = pick_random_from_random_app()
     if strategy == pick_random_from_specific_unsolved_app:
         bugToSolve = pick_random_from_specific_unsolved_app()
     if strategy == pick_specific_from_specific_unsolved_app:

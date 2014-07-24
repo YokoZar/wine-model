@@ -124,6 +124,7 @@ def pick_strategy(day, allowPrevious=True):
     ### There are 12 normal strategies to choose from
     #return pick_random_app
     #return pick_random_from_specific_unsolved_app
+    #return pick_specific_from_specific_unsolved_app
     #return pick_nearest_done_app
     #return pick_random_from_all_bugs
     #return pick_specific_from_all_bugs
@@ -282,23 +283,19 @@ def pick_first_least_unhappy_user(bugsSolved, apps, users):
     limitedApps = {x:apps[x] for x in thisUser} # Make a new "apps" that is only this user's apps
     return pick_random_app(bugsSolved, limitedApps) # Then just use our existing pick_random_app function    
 
-# TODO: consider apps[x] is True --> is SOLVED, define solved as True
-# TODO: decorate as strategy; check for speed
-def pick_first_unsolved_app(bugsSolved, apps):
-    """Picks a new bug not in the bugsSolved list by randomly selecting an unsolved bug from the first app that has any open bugs.  We assume that there is at leat one app and that there are no apps with zero unsolved bugs which haven't yet been cleaned by check_apps.
-    """
-    lowest = False
-    for x in apps:
-        if not apps[x] is True: #Note that this will only occur when apps[x] is a list (Or frozenset), which is what we want
-            lowest = x
-    if lowest: return random.choice([x for x in apps[lowest] if not x in bugsSolved])
-    else: return pick_specific_from_all_bugs() # occurs when all apps are solved
-
 def pick_random_from_specific_unsolved_app():
-    for app,bugs in apps.items():
-        if bugs is not SOLVED:
-            return random.sample(bugs,1)[0]
-    return pick_random_from_all_bugs() # occurs when all apps are solved
+    try:
+        app = next(apps_by_number)
+        return random.sample(apps[app],1)[0]
+    except StopIteration: 
+        return pick_random_from_all_bugs() 
+
+def pick_specific_from_specific_unsolved_app():
+    try:
+        app = next(apps_by_number)
+        return min(apps[app])
+    except StopIteration: 
+        return pick_specific_from_all_bugs() 
 
 # TODO: decorate as strategy; check for speed
 def pick_nearest_done_app(bugsSolved, apps):
@@ -371,11 +368,16 @@ def random_open_bugs_generator():
         open_bugs -= bugsSolved
         yield random.sample(open_bugs,1)[0]
 
+def apps_by_number_generator():
+    for app in apps:
+        while apps[app] is not SOLVED: yield app
+
 # These are nonlocal instances of the generators in order to preserve their state
 bugs_by_frequency_in_features = bugs_by_frequency_in_features_generator()
 apps_by_popularity = apps_by_popularity_generator()
 open_bugs_by_number = open_bugs_by_number_generator()
 random_open_bugs = random_open_bugs_generator()
+apps_by_number = apps_by_number_generator()
 
 ###
 ###
@@ -404,15 +406,10 @@ def check_apps(apps: dict, bugsSolved: set) -> int:
 ### Simulation setup
 ###
 
-# Start the log
 if enable_log:
-    with open(LOGFILE, 'w') as logfile:
-        logfile.write("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
+    with open(LOGFILE, 'w'): pass
+append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
             (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
-
-#TODO: if enable_log erase old logfile
-#append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
-#            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
 if useAlternativeAppMaker:
     apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
@@ -483,6 +480,8 @@ while(True):
         bugToSolve = pick_random_app(bugsSolved, apps)
     if strategy == pick_random_from_specific_unsolved_app:
         bugToSolve = pick_random_from_specific_unsolved_app()
+    if strategy == pick_specific_from_specific_unsolved_app:
+        bugToSolve = pick_specific_from_specific_unsolved_app()
     if strategy == pick_nearest_done_app:
         bugToSolve = pick_nearest_done_app(bugsSolved, apps)
     if strategy == pick_random_from_all_bugs:

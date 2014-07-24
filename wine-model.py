@@ -222,17 +222,24 @@ def pick_random_from_all_bugs():
     """Picks a random unsolved bug"""
     return next(random_bugs)
 
+def pick_specific_from_random_app():
+    """Picks the smallest bug from a random app"""
+    try:
+        app = next(random_unsolved_apps)
+    except StopIteration:
+        return pick_specific_from_all_bugs()
+    return min(apps[app])
+
 def pick_random_from_random_app():
+    """Picks a random bug from a random app"""
     try:
         app = next(random_unsolved_apps)
     except StopIteration:
         return pick_random_from_all_bugs()
     return random.sample(apps[app],1)[0]
 
-# TODO: pick_specific_from_random_app
-
 def pick_random_from_specific_user():
-    """Picks a random bug from a random app from a specific user"""
+    """Picks a random bug from a random app from the smallest user"""
     try:
         user = next(users_by_number)
     except StopIteration:
@@ -240,7 +247,14 @@ def pick_random_from_specific_user():
     app = random.sample(users[user],1)[0]
     return random.sample(apps[app],1)[0]
 
-#def pick_specific_from_specific_user
+def pick_specific_from_specific_user():
+    """Picks the smallest bug from the smallest app from the smallest user"""
+    try:
+        user = next(users_by_number)
+    except StopIteration:
+        return pick_specific_from_specific_app()
+    app = min(users[user])
+    return min(apps[app])
 
 # TODO: reimplement
 #def pick_random_from_random_user    # random bug?  random app?

@@ -25,6 +25,7 @@ CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Development Model"
 RANDOM_SEED = 123456
+FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 ###
 ### Basic setup
@@ -84,15 +85,11 @@ totalTimeToSolve = sum(bugDifficulty.values())
 print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/numberOfBugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
-def pick_strategy(day, allowPrevious=True):
+def pick_strategy(day):
     """ Returns a strategy function based on the day.  This is meant to be modified by user.
     If allowPrevious is set to False, then a strategy that doesn't always return a valid bug should never be picked.
     """
     #return random.choice(strategies)
-    ### This will work on the previously worked on bug until it's done.
-    ### Uncomment these two lines if you want to avoid picking a new strategy until each bug is solved.
-    #if allowPrevious:
-        #return "pickPrevious" 
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
     # pick_specific_from_random_apps pick_random_from_random_apps
@@ -120,13 +117,6 @@ def pick_strategy(day, allowPrevious=True):
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
 ### ----------------------------------------------------------------------------
-
-
-# TODO: remove this function; all strategies should fallback to other ones
-def pick_two_strategies(day):
-    """Returns a pair of strategies.  The first is done unless it's impossible, then the second is used as a backup.
-    """
-    return pick_strategy(day), pick_strategy(day, allowPrevious=False)
 
 ###
 ### Setup functions
@@ -444,9 +434,9 @@ day = 0
 timespent = time.clock()
 working_app_days = 0
 happy_user_days = 0
-hitHalfway = False
 hitFirst = False
-lastWorkedBug = False
+bug_in_progress = None
+workingApps, happyUsers = 0, 0
 
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
 chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
@@ -455,13 +445,12 @@ chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
 progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
 
 while(True): 
-    # Check for newly working apps every day we solved a bug in the previous day (otherwise, we might try and work on an already working app):
-    if lastWorkedBug is False:
+    # Check for newly working apps every day we solved a bug in the previous day
+    if bug_in_progress is not None:
         workingApps = check_done(apps,bugsSolved)
         happyUsers = check_done(users,set(x for x in apps if apps[x] is SOLVED))
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
-    #print("Day:",day,"Working apps:",workingApps,"Bugs solved:",len(bugsSolved))
     if workingApps >= 1 and not hitFirst:
         print("First app working on day", day)
         hitFirst = True
@@ -474,27 +463,18 @@ while(True):
     chartData[CHART_APPS].append(workingApps*100/numberOfApps)
     chartData[CHART_USERS].append(happyUsers*100/numberOfUsers)
 
-    # Pick a bug from those not yet solved:
-    strategy, backupStrategy = pick_two_strategies(day)
-    if strategy == "pickPrevious": # If the strategy is pickPrevious, then by default we just use the previous bug to solve; otherwise we need to use the backup strategy
-        if lastWorkedBug is False: # note we do not test lastWorkedBug == 0 in case we just solved bug number 0
-            strategy = backupStrategy
-        else:
-            bugToSolve = lastWorkedBug
-    bugToSolve = strategy()
+    if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
+        bug_in_progress = pick_strategy(day)()
 
-    # And take bugDifficulty days to solve it
     day += 1 
-    lastWorkedBug = bugToSolve # In case we want to work on it again tomorrow
-
     working_app_days += workingApps
     happy_user_days += happyUsers
 
-    bugDifficulty[bugToSolve] -= 1
-    if bugDifficulty[bugToSolve] <= 0:
-        bugsSolved.add(bugToSolve)
-        lastWorkedBug = False # this is the number of the bug we last worked on, in case we want to do it again
-    # TODO: warn if <= -1 as that means we did redundant work which shouldn't be a thing
+    # Note that if we work already solved bugs the system will report going over 100% done
+    bugDifficulty[bug_in_progress] -= 1
+    if bugDifficulty[bug_in_progress] <= 0:
+        bugsSolved.add(bug_in_progress)
+        bug_in_progress = None
 
     if len(bugsSolved) == numberOfBugs:
         print("All bugs solved on day", day)

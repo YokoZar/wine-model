@@ -437,7 +437,6 @@ working_app_days = 0
 happy_user_days = 0
 hitFirst = False
 bug_in_progress = None
-workingApps, happyUsers = 0, 0
 
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
 chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
@@ -447,7 +446,7 @@ progressIndicator = 0.10 # When to first show 'working on day' (x) progress indi
 
 while(True): 
     # Check for newly working apps every day we solved a bug in the previous day
-    if bug_in_progress is not None:
+    if bug_in_progress is None:
         workingApps = check_done(apps,bugsSolved)
         happyUsers = check_done(users,set(x for x in apps if apps[x] is SOLVED))
         # TODO: refactor above to maybe not reconstruct solved apps every time

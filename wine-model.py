@@ -18,7 +18,9 @@ import pandas
 import matplotlib.pyplot as plt
 
 DEBUG = False
-LOGFILE = 'wine-model.log'
+LOGFILE = 'wine-model-results.csv'
+ENABLE_LOG_DEFAULT = True
+CHARTFILE = 'wine-model-results.svg' # You can rename to .png for a png file
 CHART_BUGS = "Tasks Complete"
 CHART_APPS = "Working Features"
 CHART_USERS = "Happy Users"
@@ -40,7 +42,7 @@ minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two num
 useAlternativeAppMaker = True
 # Number of apps a user uses, not the number of users an app has
 minUserApps, maxUserApps = 1, 10 
-enable_log = True
+enable_log = ENABLE_LOG_DEFAULT
 if RANDOM_SEED: 
     random.seed(a=RANDOM_SEED)
 
@@ -453,7 +455,7 @@ bug_in_progress = None
 reported_first_app, reported_first_user = False, False
 reported_all_apps, reported_all_users = False, False
 
-append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
+append_to_log("Time, % Work Items Completed, % Features Completed, % Happy Users \n")
 chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
 
 # TODO: make this an int to avoid 0.89 from float weirdness
@@ -513,9 +515,9 @@ while(True):
 # TODO: make optional command line output
 if DEBUG: print("Available strategies:", " ".join(f.__name__ for f in strategies))
 
-print("Time taken for simulation:", (time.clock() - timespent))
-print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")
-print("Happy Users * Days:", happy_user_days, ", average", happy_user_days/day, "per day.")
+print("Time spent running simulation:", (time.clock() - timespent))
+print("Average features working:", working_app_days/day)
+print("Average happy users:", happy_user_days/day)
 
 print("Now making chart.")
 
@@ -524,4 +526,4 @@ chart.plot()
 plt.title(CHART_TITLE)
 plt.ylabel(CHART_LABEL_Y)
 plt.xlabel(CHART_LABEL_X)
-plt.savefig('wine-model-results.svg')
+plt.savefig(CHARTFILE)

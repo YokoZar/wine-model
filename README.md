@@ -6,7 +6,7 @@ users, and work items.  A neat looking chart of these with respect to time is ge
 
 This project started out as a thought experiment for the Wine project.  I initially wrote it 
 honestly not knowing what the resulting graphs would look like.  You can 
-([http://yokozar.org/blog/archives/48] read the initial blog post here).
+[read the initial blog post here](http://yokozar.org/blog/archives/48).
 
 The theoretical model is fairly straightforward: a project (like Wine) consists of a set of
 uncompleted possible work items (eg bugs).  Each of these items has an associated difficulty, or

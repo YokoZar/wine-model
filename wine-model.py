@@ -24,7 +24,7 @@ CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Development Model"
-RANDOM_SEED = 123456
+RANDOM_SEED = 123456 # set to False to randomize every time
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 ###
@@ -40,7 +40,8 @@ useAlternativeAppMaker = True
 # Number of apps a user uses, not the number of users an app has
 minUserApps, maxUserApps = 1, 10 
 enable_log = True
-random.seed(a=RANDOM_SEED)
+if RANDOM_SEED: 
+    random.seed(a=RANDOM_SEED)
 
 ###
 ###
@@ -94,7 +95,7 @@ def pick_strategy(day):
     # pick_specific_from_all_bugs pick_random_from_all_bugs
     # pick_specific_from_random_apps pick_random_from_random_apps
     # pick_specific_from_specific_user pick_random_from_specific_user
-    # pick_specific_from_specific_unsolved_app pick_random_from_specific_unsolved_app
+    # pick_specific_from_specific_app pick_random_from_specific_app
     # pick_specific_from_easiest_app pick_random_from_easiest_app
     # pick_specific_from_easiest_user pick_random_from_easiest_user
     # pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
@@ -108,7 +109,7 @@ def pick_strategy(day):
     if day %7 == 6: return pick_random_from_most_popular_app
     if day %7 == 5: return pick_specific_from_most_common_by_feature
     if day %7 == 4: return pick_random_from_easiest_app
-    if day %7 == 3: return pick_random_from_specific_unsolved_app
+    if day %7 == 3: return pick_random_from_specific_app
     if day %7 == 2: return pick_random_from_specific_user
     if day %7 == 1: return pick_random_from_easiest_bugs
     if day %7 == 0: return pick_random_from_easiest_user
@@ -224,7 +225,7 @@ def pick_random_from_specific_user():
     return random.sample(apps[app],1)[0]
 
 @strategy
-def pick_specific_from_specific_unsolved_app():
+def pick_specific_from_specific_app():
     try:
         app = next(apps_by_number)
         return min(apps[app])
@@ -232,7 +233,7 @@ def pick_specific_from_specific_unsolved_app():
         return pick_specific_from_all_bugs() 
 
 @strategy
-def pick_random_from_specific_unsolved_app():
+def pick_random_from_specific_app():
     try:
         app = next(apps_by_number)
         return random.sample(apps[app],1)[0]

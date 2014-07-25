@@ -61,6 +61,11 @@ LOGFILE = 'wine-model.log'
 SOLVED = True
 
 random.seed(a=123456) #TODO: allow command-line pass to declare this (otherwise real random)
+CHART_BUGS = "Tasks Complete"
+CHART_APPS = "Working Features"
+CHART_USERS = "Happy Users"
+CHART_LABEL_X = "Time Invested"
+CHART_LABEL_Y = "Percentage"
 
 ### Basic setup
 # TODO: constants == caps or make them defined by arguments parser
@@ -477,7 +482,7 @@ hitFirst = False
 lastWorkedBug = False
 
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
-chartData = {"Working Apps" : [], "Happy Users" : []} # TODO: numpy.array!
+chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
 
 # TODO: make this an int to avoid 0.89 from float weirdness
 progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
@@ -498,9 +503,9 @@ while(True):
         progressIndicator += 0.10
 
     append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/numberOfBugs, workingApps/numberOfApps, happyUsers/numberOfUsers) )
-    #chartData["Bugs Solved"].append(len(bugsSolved)*100/numberOfBugs)
-    chartData["Working Apps"].append(workingApps*100/numberOfApps)
-    chartData["Happy Users"].append(happyUsers*100/numberOfUsers)
+    chartData[CHART_BUGS].append(len(bugsSolved)*100/numberOfBugs)
+    chartData[CHART_APPS].append(workingApps*100/numberOfApps)
+    chartData[CHART_USERS].append(happyUsers*100/numberOfUsers)
 
     # Pick a bug from those not yet solved:
     strategy, backupStrategy = pick_two_strategies(day)
@@ -540,6 +545,6 @@ print("Now making chart.")
 
 chart = pandas.DataFrame(chartData)
 chart.plot()
-plt.ylabel("Percentage")
-plt.xlabel("Man-hours invested")
+plt.ylabel(CHART_LABEL_Y)
+plt.xlabel(CHART_LABEL_X)
 plt.savefig('wine-model-results.svg')

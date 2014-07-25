@@ -374,16 +374,26 @@ def prioritize(goals: dict, total_tasks: int):
                 count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
 
-def tasks_by_number_generator(tasks: set):
-    for task in tasks:
-        while tasks[task] is not SOLVED: yield task
+def goals_by_number_generator(goals: dict):
+    for goal in goals:
+        while goals[goal] is not SOLVED: yield goal
 
-def tasks_by_easiest_generator(goals: dict):
+def goals_by_easiest_generator(goals: dict):
     """Generator to yield goals based on which has the fewest tasks remaining"""
-    temp = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
-    while temp:
-        yield min(temp, key=itemgetter(1))[0]
-        temp = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+    goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+    while goalsizes:
+        yield min(goalsizes, key=itemgetter(1))[0]
+        goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+
+def goals_by_random_generator(goals: dict):
+    """Generator to yield unsolved goals at random"""
+    unfinished_goals = set(goals.keys())
+    while unfinished_goals:
+        goal = random.sample(unfinished_goals,1)[0]
+        if goals[goal] is SOLVED:
+            unfinished_goals.remove(goal)
+        else:
+            yield goal
 
 def bugs_by_popularity_in_apps_generator():
     for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
@@ -403,27 +413,17 @@ def random_bugs_generator():
         open_bugs -= bugsSolved
         yield random.sample(open_bugs,1)[0]
 
-def random_apps_generator():
-    unsolved_apps = set(range(numberOfApps))
-    while unsolved_apps:
-        app = random.sample(unsolved_apps,1)[0]
-        if apps[app] is SOLVED:
-            unsolved_apps.remove(app)
-        else:
-            yield app
-#def random_users_generator(): # TODO: DRY with random_apps_generator
-
 # These are nonlocal instances of the generators in order to preserve their state
 bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
 bugs_by_number = bugs_by_number_generator()
 apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
-apps_by_number = tasks_by_number_generator(apps)
-apps_by_easiest = tasks_by_easiest_generator(apps)
-users_by_number = tasks_by_number_generator(users)
-users_by_easiest = tasks_by_easiest_generator(users)
+apps_by_number = goals_by_number_generator(apps)
+apps_by_easiest = goals_by_easiest_generator(apps)
+users_by_number = goals_by_number_generator(users)
+users_by_easiest = goals_by_easiest_generator(users)
 random_bugs = random_bugs_generator()
-random_apps = random_apps_generator()
-#random_users  # TODO
+random_apps = goals_by_random_generator(apps)
+random_users = goals_by_random_generator(users)
 
 ###
 ### Simulation begins here

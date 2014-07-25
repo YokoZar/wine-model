@@ -276,11 +276,7 @@ def pick_random_from_easiest_app():
         app = next(apps_by_easiest)
     except StopIteration: 
         return pick_random_from_all_bugs() 
-    try:
-        return random.sample(apps[app],1)[0]
-    except TypeError:
-        print("fuck: ", apps[app], " shit ", app)
-        raise
+    return random.sample(apps[app],1)[0]
 
 @strategy
 def pick_specific_from_easiest_user():

@@ -9,9 +9,9 @@ honestly not knowing what the resulting graphs would look like.  You can
 [read the initial blog post here](http://yokozar.org/blog/archives/48).
 
 The theoretical model is fairly straightforward: a project (like Wine) consists of a set of
-uncompleted possible work items (eg bugs).  Each of these items has an associated difficulty, or
-time in man-hours to complete.  Features are defined as overlapping sets of these work items; a
-feature is considered done when all work items are complete.  Users, in turn, are defined as sets
+uncompleted possible **work items** (eg bugs).  Each of these items has an associated difficulty, or
+time in man-hours to complete.  **Features** are defined as overlapping sets of these work items; a
+feature is considered done when all work items are complete. **Users**, in turn, are defined as sets
 of features; a user is considered happy when all their features are complete.
 
 There are two main lessons from the model: first, the *order* in which work items are done can 

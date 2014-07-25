@@ -87,10 +87,8 @@ totalTimeToSolve = sum(bugDifficulty.values())
 print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/numberOfBugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
-def pick_strategy(day):
-    """ Returns a strategy function based on the day.  This is meant to be modified by user.
-    If allowPrevious is set to False, then a strategy that doesn't always return a valid bug should never be picked.
-    """
+def pick_strategy():
+    """ Returns a strategy function based on the day.  This is meant to be modified by user."""
     #return random.choice(strategies)
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
@@ -104,17 +102,15 @@ def pick_strategy(day):
     # pick_specific_from_most_popular_app pick_random_from_most_popular_app
     # pick_random_from_easiest_bugs pick_specific_from_easiest_bugs
 
-    ### You can select the strategy based on the day
+    # You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
         return pick_specific_from_most_common_by_feature
-    ### "Realistic" model: do different plausible strategies for each day of the week
-    if day %7 == 6: return pick_random_from_most_popular_app
-    if day %7 == 5: return pick_specific_from_most_common_by_feature
-    if day %7 == 4: return pick_random_from_easiest_app
-    if day %7 == 3: return pick_random_from_specific_app
-    if day %7 == 2: return pick_random_from_specific_user
-    if day %7 == 1: return pick_random_from_easiest_bugs
-    if day %7 == 0: return pick_random_from_easiest_user
+    # "Realistic" model: rotate through different strategies
+    if day %5 == 4: return pick_random_from_most_popular_app
+    if day %5 == 3: return pick_random_from_random_user
+    if day %5 == 2: return pick_random_from_easiest_app
+    if day %5 == 1: return pick_random_from_easiest_bugs
+    if day %5 == 0: return pick_random_from_easiest_user
 
 
 ### ----------------------------------------------------------------------------
@@ -493,7 +489,7 @@ while(True):
     chartData[CHART_USERS].append(happyUsers*100/numberOfUsers)
 
     if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
-        bug_in_progress = pick_strategy(day)()
+        bug_in_progress = pick_strategy()()
         if DEBUG and bug_in_progress in bugsSolved:
             error = "Working already complete task: " + str(bug_in_progress) + " on day " + str(day)
             raise ValueError(error)

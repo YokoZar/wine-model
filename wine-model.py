@@ -17,6 +17,7 @@ from operator import itemgetter
 import pandas
 import matplotlib.pyplot as plt
 
+DEBUG = False
 LOGFILE = 'wine-model.log'
 CHART_BUGS = "Tasks Complete"
 CHART_APPS = "Working Features"
@@ -93,9 +94,10 @@ def pick_strategy(day):
     #return random.choice(strategies)
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
-    # pick_specific_from_random_apps pick_random_from_random_apps
-    # pick_specific_from_specific_user pick_random_from_specific_user
     # pick_specific_from_specific_app pick_random_from_specific_app
+    # pick_specific_from_random_apps pick_random_from_random_apps TODO: name inconsistent
+    # pick_specific_from_specific_user pick_random_from_specific_user
+    # pick_specific_from_random_user pick_random_from_random_user
     # pick_specific_from_easiest_app pick_random_from_easiest_app
     # pick_specific_from_easiest_user pick_random_from_easiest_user
     # pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
@@ -205,6 +207,22 @@ def pick_random_from_random_apps():
     return random.sample(apps[app],1)[0]
 
 @strategy
+def pick_specific_from_specific_app():
+    try:
+        app = next(apps_by_number)
+        return min(apps[app])
+    except StopIteration: 
+        return pick_specific_from_all_bugs() 
+
+@strategy
+def pick_random_from_specific_app():
+    try:
+        app = next(apps_by_number)
+        return random.sample(apps[app],1)[0]
+    except StopIteration: 
+        return pick_random_from_all_bugs() 
+
+@strategy
 def pick_specific_from_specific_user():
     """Picks the smallest bug from the smallest app from the smallest user"""
     try:
@@ -225,20 +243,24 @@ def pick_random_from_specific_user():
     return random.sample(apps[app],1)[0]
 
 @strategy
-def pick_specific_from_specific_app():
+def pick_specific_from_random_user():
+    """Picks the smallest bug in the smallest app from a random user"""
     try:
-        app = next(apps_by_number)
-        return min(apps[app])
-    except StopIteration: 
-        return pick_specific_from_all_bugs() 
+        user = next(random_users)
+    except StopIteration:
+        return pick_specific_from_random_app()
+    app = min(users[user])
+    return min(apps[app])
 
 @strategy
-def pick_random_from_specific_app():
+def pick_random_from_random_user():
+    """Picks a random bug from a random app from a random user"""
     try:
-        app = next(apps_by_number)
-        return random.sample(apps[app],1)[0]
-    except StopIteration: 
-        return pick_random_from_all_bugs() 
+        user = next(random_users)
+    except StopIteration:
+        return pick_random_from_random_app()
+    app = random.choice(tuple(users[user]))
+    return random.choice(tuple(apps[app]))
 
 @strategy
 def pick_specific_from_easiest_app():
@@ -387,9 +409,9 @@ def goals_by_easiest_generator(goals: dict):
 
 def goals_by_random_generator(goals: dict):
     """Generator to yield unsolved goals at random"""
-    unfinished_goals = set(goals.keys())
+    unfinished_goals = set(goals)
     while unfinished_goals:
-        goal = random.sample(unfinished_goals,1)[0]
+        goal = random.choice(tuple(unfinished_goals))
         if goals[goal] is SOLVED:
             unfinished_goals.remove(goal)
         else:
@@ -435,8 +457,9 @@ day = 0
 timespent = time.clock()
 working_app_days = 0
 happy_user_days = 0
-hitFirst = False
 bug_in_progress = None
+reported_first_app, reported_first_user = False, False
+reported_all_apps, reported_all_users = False, False
 
 append_to_log("Day, % Bugs Solved, % Working Apps, % Happy Users \n")
 chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
@@ -451,9 +474,19 @@ while(True):
         happyUsers = check_done(users,set(x for x in apps if apps[x] is SOLVED))
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
-    if workingApps >= 1 and not hitFirst:
+    if not reported_first_app and workingApps >= 1:
         print("First app working on day", day)
-        hitFirst = True
+        reported_first_app = True
+    if not reported_all_apps and workingApps == numberOfApps:
+        print("All apps working on day", day)
+        reported_all_apps = True
+    if not reported_first_user and happyUsers >= 1:
+        print("First user happy on day", day)
+        reported_first_user = True
+    if not reported_all_users and happyUsers == numberOfUsers:
+        print("All users happy on day", day)
+        reported_all_users = True
+
     if day >= totalTimeToSolve*progressIndicator:
         print("%i%% complete on day: " % (progressIndicator*100), day)
         progressIndicator += 0.10
@@ -465,15 +498,19 @@ while(True):
 
     if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
         bug_in_progress = pick_strategy(day)()
+        if DEBUG and bug_in_progress in bugsSolved:
+            error = "Working already complete task: " + str(bug_in_progress) + " on day " + str(day)
+            raise ValueError(error)
 
     day += 1 
     working_app_days += workingApps
     happy_user_days += happyUsers
 
-    # Note that if we work already solved bugs the system will report going over 100% done
     bugDifficulty[bug_in_progress] -= 1
+    if DEBUG: print("worked bug:", bug_in_progress)
     if bugDifficulty[bug_in_progress] <= 0:
         bugsSolved.add(bug_in_progress)
+        if DEBUG: print("solved bug:", bug_in_progress)
         bug_in_progress = None
 
     if len(bugsSolved) == numberOfBugs:
@@ -482,7 +519,7 @@ while(True):
         break
 
 # TODO: make optional command line output
-print("Available strategies:", " ".join(f.__name__ for f in strategies))
+if DEBUG: print("Available strategies:", " ".join(f.__name__ for f in strategies))
 
 print("Time taken for simulation:", (time.clock() - timespent))
 print("Apps Working * Days:", working_app_days, ", average", working_app_days/day, "per day.")

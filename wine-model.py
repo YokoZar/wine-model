@@ -127,9 +127,11 @@ def pick_strategy(day, allowPrevious=True):
     # pick_specific_from_random_apps pick_random_from_random_apps
     # pick_specific_from_specific_user pick_random_from_specific_user
     # pick_specific_from_specific_unsolved_app pick_random_from_specific_unsolved_app
-    # pick_specific_from_most_common_by_feature
+    # pick_specific_from_easiest_app pick_random_from_easiest_app
+    # pick_specific_from_easiest_user pick_random_from_easiest_user
+    # pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
     # pick_specific_from_most_popular_app pick_random_from_most_popular_app
-    # pick_specific_from_easiest_bugs pick_random_from_easiest_bugs
+    # pick_random_from_easiest_bugs pick_specific_from_easiest_bugs
 
     ### You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
@@ -141,7 +143,7 @@ def pick_strategy(day, allowPrevious=True):
     if day %7 == 3: return pick_random_from_specific_unsolved_app
     if day %7 == 2: return pick_random_from_specific_user
     if day %7 == 1: return pick_random_from_easiest_bugs
-    if day %7 == 0: return random.choice(strategies) #pick_first_least_unhappy_user
+    if day %7 == 0: return pick_random_from_easiest_user
 
 
 ### ----------------------------------------------------------------------------
@@ -260,10 +262,6 @@ def pick_random_from_specific_user():
     app = random.sample(users[user],1)[0]
     return random.sample(apps[app],1)[0]
 
-# TODO: reimplement
-#def pick_random_from_random_almost_happy_user # TODO: almost happy == fewest apps
-#def pick_specific_from_specific_almost_happy_user # TODO
-
 @strategy
 def pick_specific_from_specific_unsolved_app():
     try:
@@ -284,17 +282,39 @@ def pick_random_from_specific_unsolved_app():
 def pick_specific_from_easiest_app():
     try:
         app = next(apps_by_easiest)
-        return min(apps[app])
     except StopIteration: 
         return pick_specific_from_all_bugs() 
+    return min(apps[app])
 
 @strategy
 def pick_random_from_easiest_app():
     try:
         app = next(apps_by_easiest)
-        return random.sample(apps[app],1)[0]
     except StopIteration: 
         return pick_random_from_all_bugs() 
+    try:
+        return random.sample(apps[app],1)[0]
+    except TypeError:
+        print("fuck: ", apps[app], " shit ", app)
+        raise
+
+@strategy
+def pick_specific_from_easiest_user():
+    try:
+        user = next(users_by_easiest)
+    except StopIteration: 
+        return pick_specific_from_easiest_app() 
+    app = min(users[user])
+    return min(apps[app])
+
+@strategy
+def pick_random_from_easiest_user():
+    try:
+        user = next(users_by_easiest)
+    except StopIteration: 
+        return pick_random_from_easiest_app()
+    app = random.sample(users[user],1)[0]
+    return random.sample(apps[app],1)[0] 
 
 @strategy
 def pick_specific_from_most_common_by_feature():
@@ -395,23 +415,12 @@ def tasks_by_number_generator(tasks: set):
     for task in tasks:
         while tasks[task] is not SOLVED: yield task
 
-def tasks_by_easiest_generator(goals: dict, total_goals: int):
+def tasks_by_easiest_generator(goals: dict):
     """Generator to yield goals based on which has the fewest tasks remaining"""
-    remaining_goals = set(range(total_goals))
-    while remaining_goals:
-        easiest_difficulty = None
-        for goal in remaining_goals.copy():
-            if goals[goal] is SOLVED:
-                remaining_goals.remove(goal)
-                continue
-            difficulty = len(goals[goal])
-            if difficulty == 1: # Doesn't get any easier
-                yield goal
-                break
-            if easiest_difficulty is None or difficulty < easiest_difficulty:
-                easiest_difficulty = difficulty
-                easiest_goal = goal
-        if easiest_difficulty is not None: yield easiest_goal
+    temp = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+    while temp:
+        yield min(temp, key=itemgetter(1))[0]
+        temp = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
 
 def bugs_by_popularity_in_apps_generator():
     for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
@@ -446,9 +455,9 @@ bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
 bugs_by_number = bugs_by_number_generator()
 apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
 apps_by_number = tasks_by_number_generator(apps)
-apps_by_easiest = tasks_by_easiest_generator(apps, numberOfApps)
+apps_by_easiest = tasks_by_easiest_generator(apps)
 users_by_number = tasks_by_number_generator(users)
-users_by_easiest = tasks_by_easiest_generator(users, numberOfUsers)
+users_by_easiest = tasks_by_easiest_generator(users)
 random_bugs = random_bugs_generator()
 random_apps = random_apps_generator()
 #random_users  # TODO

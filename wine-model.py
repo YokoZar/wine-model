@@ -1,54 +1,14 @@
 #!/usr/bin/env python3
 
 ###
-### Wine-Model v 1.3
+### Wine-Model:
 ###  A python script to model Wine development created by Scott Ritchie
 ###
 ### Copyright (c) 2009-2014 Scott Ritchie <scottritchie@ubuntu.com>
 ### Licensed under the MIT License.  See the LICENSE file for details.
 ###
-### HOWTO:
-###  First, read this blog post to learn a bit about the theory behind the model:
-###   http://yokozar.org/blog/archives/48
-### 
-### To run the script, just put this file and cairoplot.py in a folder and run.
-### It will display some progress in the terminal, and then generate two files: 
-### wine-model-results.svg and wine-model.log. wine-model-results.svg is a 
-### pretty chart made using cairoplot of the results, and wine-model.log is a 
-### complete log of % apps complete and % happy users per day.  If you want to 
-### make your own chart, you can easily parse and feed wine-model.log into a
-### spreadsheet program.
-### 
-### Be aware, the program can take some time to run.  The default settings take
-### a few minutes on my 1.5 ghz core2duo.
+### Hosted on GitHub here: https://github.com/YokoZar/wine-model
 ###
-### Known shortcomings:
-###  * We don't model applications that partially work despite having bugs, 
-###    nor do we model partially happy users.
-###  * We don't model new apps or bugs that get created during development 
-###    (eg regressions or new versions of Windows)
-###  * APIs are given a relative probability of being used, however we don't 
-###    cluster them realistically (eg two direct3D APIs may both occur in 10% 
-###    of real world programs, but they are 100% found together)  This means some
-###    bugs should be "paired", however we can roughly simulate this by just
-###    making a particular bug represent the pair and take longer to solve. When
-###    the pairing reflects a correlation rather than 100%, however, we can't 
-###    model it so specifically.
-###  * Similarly, we don't cluster users.  Someone who needs Word to work is 
-###    more likely to need Excel to work, but we just assign both a static 
-###    probability of being needed by a user.
-###  * And, of course, the actual methods for modelling bugs, applications, and
-###    users may not reflect reality - however, if you have a better idea, you
-###    can work it into this very script.  Please share so we can discuss it :)
-###
-### Version 1.3 changes:
-###  * Python 3
-###  * Massive refactor
-###  * New license
-### Version 1.2 changes:
-###  * Use Pandas instead of cairoplot
-### Version 1.1 changes:
-###  * Relative bug probability by default
 
 import random
 import time
@@ -58,17 +18,19 @@ import pandas
 import matplotlib.pyplot as plt
 
 LOGFILE = 'wine-model.log'
-SOLVED = True
-
-random.seed(a=123456) #TODO: allow command-line pass to declare this (otherwise real random)
 CHART_BUGS = "Tasks Complete"
 CHART_APPS = "Working Features"
 CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
+CHART_TITLE = "Development Model"
+RANDOM_SEED = 123456
 
+###
 ### Basic setup
-# TODO: constants == caps or make them defined by arguments parser
+###
+
+# TODO: make the following defined by arguments parser
 numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
 numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two numbers using a uniform distribution
@@ -76,16 +38,20 @@ minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two num
 useAlternativeAppMaker = True
 # Number of apps a user uses, not the number of users an app has
 minUserApps, maxUserApps = 1, 10 
-# Set this to True to prevent making the wine-model.log file (the chart will still be made)
 enable_log = True
+random.seed(a=RANDOM_SEED)
+
+###
+###
+###
+
+SOLVED = True
+
 print("Modeling with", numberOfBugs, "bugs,", numberOfApps, "apps, and", numberOfUsers, "users")
 if not useAlternativeAppMaker:
     print("From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user")
 else:
     print("Using relative probabilities for individual bugs and from", minUserApps, "to", maxUserApps, "apps per user")
-
-chartTitle = "Simulated model of Wine development" # Appears at the top of the chart produced at the end
-###
 
 ### Relative difficulty of bugs
 ## bugDifficulty is the number of days it takes to solve a bug.
@@ -392,6 +358,7 @@ if enable_log:
 append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
             (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
+# TODO: compress
 if useAlternativeAppMaker:
     apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 else:
@@ -545,6 +512,7 @@ print("Now making chart.")
 
 chart = pandas.DataFrame(chartData)
 chart.plot()
+plt.title(CHART_TITLE)
 plt.ylabel(CHART_LABEL_Y)
 plt.xlabel(CHART_LABEL_X)
 plt.savefig('wine-model-results.svg')

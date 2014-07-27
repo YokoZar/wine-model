@@ -27,18 +27,18 @@ CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Development Model"
-RANDOM_SEED = 123456 # set to False to randomize every time
+RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
 
 ###
-### Basic setup
+### Basic setup -- meant to be modified by user
 ###
 
+# Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
-number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -48,14 +48,12 @@ def setup_functions():
     app_frequency_function = partial(frequency_list_from_pareto_distribution, number_of_apps)
     apps_per_user_function = partial(random.randint, MIN_APPS_PER_USER, MAX_APPS_PER_USER)
 
-#bug_difficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number_of_bugs)}
-
 enable_log = ENABLE_LOG_DEFAULT
 if RANDOM_SEED: 
     random.seed(a=RANDOM_SEED)
 
 ###
-###
+### Strategy -- meant to be modified by user
 ###
 
 def pick_strategy():

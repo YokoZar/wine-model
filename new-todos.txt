@@ -1,0 +1,27 @@
+Document:
+ - strategies come in the form pick_*_from_*
+   - specific will always pick the same one, eg if you call this function repeatedly they'll work on the same one.
+     - the heuristic used internally is "lowest number", so if multiple specific methods are used, they are more likely to 
+       overlap.
+   - random will pick a random from a specific subset
+   - specific methods fall back to pick_specific_from_all and random methods fall back to pick_random_from_all
+     - eg if you pick from happy users, and there are no unhappy users.
+ - originally this was a model of Wine (users/apps/bugs), but it can just as easily apply to anything:
+   - "apps" are "features", "bugs" are "work items"
+ - docstrings for all strategies
+
+Features:
+ - take arguments from command line instead of defining up top
+ - much later: compare two strategies against one another with same initial data
+ - log file should be a csv
+ - Consider a parameter for zipf's other than 0.5 == sqrt
+ - Implement pareto-distribution porbability (80/20 rule) for apps/bugs
+
+Cleanup:
+ random.choice(tuple(x)) instead of sample
+ make consistent use of "features" "work items"
+
+maybe underscore the internal methods eg generators?
+might be a way to compactify StopIteration exceptions
+consider a "main" loop
+

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-
-###
-### Wine-Model:
-###  A python script to model Wine development created by Scott Ritchie
-###
-### Copyright (c) 2009-2014 Scott Ritchie <scottritchie@ubuntu.com>
-### Licensed under the MIT License.  See the LICENSE file for details.
-###
-### Hosted on GitHub here: https://github.com/YokoZar/wine-model
-###
+#
+# Wine-Model:
+#  A python script to model Wine development created by Scott Ritchie
+#
+# Copyright (c) 2009-2014 Scott Ritchie <scottritchie@ubuntu.com>
+# Licensed under the MIT License.  See the LICENSE file for details.
+#
+# Hosted on GitHub here: https://github.com/YokoZar/wine-model
+#
 
 import random
 import time
@@ -30,18 +29,27 @@ CHART_TITLE = "Development Model"
 RANDOM_SEED = 123456 # set to False to randomize every time
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
+MIN_APP_BUGS = 150
+MAX_APP_BUGS = 900
+MIN_USER_APPS = 1
+MAX_USER_APPS = 10
+
 ###
 ### Basic setup
 ###
 
 # TODO: make the following defined by arguments parser
-numberOfBugs, numberOfApps, numberOfUsers = 10000, 2500, 5000
-numberOfBugs, numberOfApps, numberOfUsers = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
-minAppBugs, maxAppBugs = 150, 900 # Applications pick from between these two numbers using a uniform distribution
+number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
+number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
+
+# TODO: convert to factory functions to pass
+# number_of_bugs_per_app = partial(random.randint(MIN_APP_BUGS,MAX_APP_BUGS))
+# number_of_apps_per_user = partial(random.randint(MIN_USER_BUGS,MAX_USER_BUGS))
+minAppBugs, maxAppBugs = MIN_APP_BUGS, MAX_APP_BUGS # Applications pick from between these two numbers using a uniform distribution
 # Set this to True if you want to ignore the above pre-set number of bugs and instead use the alternative App Maker (see bug probability below)
 useAlternativeAppMaker = True
 # Number of apps a user uses, not the number of users an app has
-minUserApps, maxUserApps = 1, 10 
+minUserApps, maxUserApps = MIN_USER_APPS, MAX_USER_APPS 
 enable_log = ENABLE_LOG_DEFAULT
 if RANDOM_SEED: 
     random.seed(a=RANDOM_SEED)
@@ -52,7 +60,7 @@ if RANDOM_SEED:
 
 SOLVED = True
 
-print("Modeling with", numberOfBugs, "bugs,", numberOfApps, "apps, and", numberOfUsers, "users")
+print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
 if not useAlternativeAppMaker:
     print("From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user")
 else:
@@ -62,9 +70,9 @@ else:
 ## bugDifficulty is the number of days it takes to solve a bug.
 ## When a bug is worked on, it's difficulty is reduced by one until it is 0, so some bugs need to be "solved" (worked on) multiple times.
 # Set all to 1 to have all bugs be equally difficult.
-#bugDifficulty = {x:1 for x in range(numberOfBugs)}
+#bugDifficulty = {x:1 for x in range(number_of_bugs)}
 ## Here, a positive, almost normally distributed number of days per bug.  Average is just under 5 days per bug, with about 10% taking only 1 day.
-bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(numberOfBugs)}
+bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number_of_bugs)}
 ###
 
 ### Relative probability of bugs and applications
@@ -72,21 +80,21 @@ bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number
 ## if useAlternativeAppMaker = True, then the minAppBugs and maxAppBugs variables are ignored.  Instead, the highest number in bugProbability is interpretted as 100% and will affect all apps; meanwhile lower numbers will be proportionately less likely to affect an app.  So if bugProbability = [1, 2, 4], then the third bug will affect all apps, the second bug will have a 50% chance of affecting any particular app, and the first bug will have a 25% chance.
 ## appProbability, meanwhile, is the relative probability that that application will be listed on a user.  Thus the most popular application will have a higher number.
 # Try pareto-distribution probability.  The 2.2 number was more or less pulled from a hat based on the intuition that a typical bug is about 60 times less likely than the most common bug
-#bugProbability = [random.paretovariate(2.2) for x in range(numberOfBugs)]
+#bugProbability = [random.paretovariate(2.2) for x in range(number_of_bugs)]
 
 # use this guy for Vince's idea of "most apps should have one or two bugs that only affect them" -- have useAlternativeAppMaker = True
-#bugProbability = [numberOfApps] + [1 for x in range(numberOfApps)] + ... # make the relative probability always between 1 and number of Apps, so on average all the "1" bugs will affect one app
+#bugProbability = [number_of_apps] + [1 for x in range(number_of_apps)] + ... # make the relative probability always between 1 and number of Apps, so on average all the "1" bugs will affect one app
 # TODO: implement "80/20" rule here, think about what it means a bit
 # 80/20 rule: make 100 max.  Then last 80% can be 20, and first 20% can be 80...
-bugProbability = [1.0/sqrt(x+1) for x in range(numberOfBugs)] # zipfs law
+bugProbability = [1.0/sqrt(x+1) for x in range(number_of_bugs)] # zipfs law
 # 
 
-appProbability = [random.paretovariate(2.2) for x in range(numberOfApps)]
+appProbability = [random.paretovariate(2.2) for x in range(number_of_apps)]
 ###
 
 totalTimeToSolve = sum(bugDifficulty.values())
 
-print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/numberOfBugs, "days per bug.")
+print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/number_of_bugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
 def pick_strategy():
@@ -363,18 +371,18 @@ def check_done(goals: dict, solved_tasks: set) -> int:
 if enable_log:
     with open(LOGFILE, 'w'): pass
 append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
-            (numberOfBugs, numberOfApps, numberOfUsers, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
+            (number_of_bugs, number_of_apps, number_of_users, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
 # TODO: compress
 if useAlternativeAppMaker:
-    apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(number_of_apps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 else:
-    apps = {x:make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(numberOfApps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+    apps = {x:make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(number_of_apps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
 
-users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(numberOfUsers)} #Users will have from minUserApps to maxUserApps, uniformly distributed
+users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(number_of_users)} #Users will have from minUserApps to maxUserApps, uniformly distributed
 
-averageBugsPerApp = sum([len(apps[x]) for x in apps]) / numberOfApps
-averageAppsPerUser = sum([len(users[x]) for x in users]) / numberOfUsers
+averageBugsPerApp = sum([len(apps[x]) for x in apps]) / number_of_apps
+averageAppsPerUser = sum([len(users[x]) for x in users]) / number_of_users
 print("Applications and users generated, averaging", averageBugsPerApp ,"bugs per app and", averageAppsPerUser ,"apps per user.  Starting simulation...")
 
 ###
@@ -412,19 +420,19 @@ def goals_by_random_generator(goals: dict):
             yield goal
 
 def bugs_by_popularity_in_apps_generator():
-    for bug in prioritize(goals=apps, total_tasks=numberOfBugs):
+    for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in bugsSolved: yield bug
 
 def apps_by_popularity_in_users_generator():
-    for app in prioritize(goals=users, total_tasks=numberOfApps):
+    for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not SOLVED: yield app
 
 def bugs_by_number_generator():
-    for bug in range(numberOfBugs):
+    for bug in range(number_of_bugs):
         while bug not in bugsSolved: yield bug
 
 def random_bugs_generator():
-    open_bugs = set(range(numberOfBugs)) - bugsSolved
+    open_bugs = set(range(number_of_bugs)) - bugsSolved
     while True:
         open_bugs -= bugsSolved
         yield random.sample(open_bugs,1)[0]
@@ -471,13 +479,13 @@ while(True):
     if not reported_first_app and workingApps >= 1:
         print("First app working on day", day)
         reported_first_app = True
-    if not reported_all_apps and workingApps == numberOfApps:
+    if not reported_all_apps and workingApps == number_of_apps:
         print("All apps working on day", day)
         reported_all_apps = True
     if not reported_first_user and happyUsers >= 1:
         print("First user happy on day", day)
         reported_first_user = True
-    if not reported_all_users and happyUsers == numberOfUsers:
+    if not reported_all_users and happyUsers == number_of_users:
         print("All users happy on day", day)
         reported_all_users = True
 
@@ -485,10 +493,10 @@ while(True):
         print("%i%% complete on day: " % (progressIndicator*100), day)
         progressIndicator += 0.10
 
-    append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/numberOfBugs, workingApps/numberOfApps, happyUsers/numberOfUsers) )
-    chartData[CHART_BUGS].append(len(bugsSolved)*100/numberOfBugs)
-    chartData[CHART_APPS].append(workingApps*100/numberOfApps)
-    chartData[CHART_USERS].append(happyUsers*100/numberOfUsers)
+    append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/number_of_bugs, workingApps/number_of_apps, happyUsers/number_of_users) )
+    chartData[CHART_BUGS].append(len(bugsSolved)*100/number_of_bugs)
+    chartData[CHART_APPS].append(workingApps*100/number_of_apps)
+    chartData[CHART_USERS].append(happyUsers*100/number_of_users)
 
     if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
         bug_in_progress = pick_strategy()()
@@ -507,7 +515,7 @@ while(True):
         if DEBUG: print("solved bug:", bug_in_progress)
         bug_in_progress = None
 
-    if len(bugsSolved) == numberOfBugs:
+    if len(bugsSolved) == number_of_bugs:
         print("All bugs solved on day", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break

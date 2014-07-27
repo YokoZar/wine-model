@@ -39,6 +39,7 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
+RANDOM_SEED = 1234
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -58,7 +59,7 @@ if RANDOM_SEED:
 
 def pick_strategy():
     """ Returns a strategy function based on the day.  This is meant to be modified by user."""
-    #return random.choice(strategies)
+    return random.choice(strategies)
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
     # pick_specific_from_specific_app pick_random_from_specific_app
@@ -154,7 +155,7 @@ def pick_specific_from_random_app():
 def pick_random_from_random_app():
     """Picks a random bug from a random app"""
     for app in random_apps:
-        return random.sample(apps[app],1)[0]
+        return random.choice(tuple(apps[app]))
     return pick_random_from_all_bugs()
 
 @strategy
@@ -166,7 +167,7 @@ def pick_specific_from_specific_app():
 @strategy
 def pick_random_from_specific_app():
     for app in apps_by_number:
-        return random.sample(apps[app],1)[0]
+        return random.choice(tuple(apps[app]))
     return pick_random_from_all_bugs() 
 
 @strategy
@@ -181,8 +182,8 @@ def pick_specific_from_specific_user():
 def pick_random_from_specific_user():
     """Picks a random bug from a random app from the smallest user"""
     for user in users_by_number:
-        app = random.sample(users[user],1)[0]
-        return random.sample(apps[app],1)[0]
+        app = random.choice(tuple(users[user]))
+        return random.choice(tuple(apps[app]))
     return pick_random_from_random_app()
 
 @strategy
@@ -210,7 +211,7 @@ def pick_specific_from_easiest_app():
 @strategy
 def pick_random_from_easiest_app():
     for app in apps_by_easiest:
-        return random.sample(apps[app],1)[0]
+        return random.choice(tuple(apps[app]))
     return pick_random_from_all_bugs() 
 
 @strategy
@@ -223,8 +224,8 @@ def pick_specific_from_easiest_user():
 @strategy
 def pick_random_from_easiest_user():
     for user in users_by_easiest:
-        app = random.sample(users[user],1)[0]
-        return random.sample(apps[app],1)[0]
+        app = random.choice(tuple(users[user]))
+        return random.choice(tuple(apps[app]))
     return pick_random_from_easiest_app()
 
 @strategy
@@ -243,7 +244,7 @@ def pick_specific_from_most_popular_app():
 def pick_random_from_most_popular_app():
     """Picks a random bug from the most popular app"""
     for app in (apps_by_popularity_in_users):
-        return random.sample(apps[app],1)[0]
+        return random.choice(tuple(apps[app]))
     return pick_random_from_all_bugs()
 
 @strategy
@@ -255,7 +256,7 @@ def pick_random_from_easiest_bugs():
             easiest_difficulty = difficulty
         elif 0 < difficulty == easiest_difficulty:
             candidates.add(bug)
-    return random.sample(candidates,1)[0]
+    return random.choice(tuple(candidates))
 
 @strategy
 def pick_specific_from_easiest_bugs():
@@ -318,7 +319,7 @@ def random_bugs_generator():
     open_bugs = set(range(number_of_bugs)) - solved_bugs
     while True:
         open_bugs -= solved_bugs
-        yield random.sample(open_bugs,1)[0]
+        yield random.choice(tuple(open_bugs))
 
 ###
 ### Helper functions for running simulation

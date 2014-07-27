@@ -37,9 +37,8 @@ MAX_APPS_PER_USER = 10
 ### Basic setup
 ###
 
-# TODO: make the following defined by arguments parser
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
-number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
+number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -65,7 +64,7 @@ def pick_strategy():
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
     # pick_specific_from_specific_app pick_random_from_specific_app
-    # pick_specific_from_random_apps pick_random_from_random_apps TODO: name inconsistent
+    # pick_specific_from_random_app pick_random_from_random_app
     # pick_specific_from_specific_user pick_random_from_specific_user
     # pick_specific_from_random_user pick_random_from_random_user
     # pick_specific_from_easiest_app pick_random_from_easiest_app
@@ -147,7 +146,7 @@ def pick_random_from_all_bugs():
     return next(random_bugs)
 
 @strategy
-def pick_specific_from_random_apps():
+def pick_specific_from_random_app():
     """Picks the smallest bug from a random app"""
     try:
         app = next(random_apps)
@@ -156,7 +155,7 @@ def pick_specific_from_random_apps():
     return min(apps[app])
 
 @strategy
-def pick_random_from_random_apps():
+def pick_random_from_random_app():
     """Picks a random bug from a random app"""
     try:
         app = next(random_apps)
@@ -196,7 +195,7 @@ def pick_random_from_specific_user():
     try:
         user = next(users_by_number)
     except StopIteration:
-        return pick_random_from_random_apps()
+        return pick_random_from_random_app()
     app = random.sample(users[user],1)[0]
     return random.sample(apps[app],1)[0]
 

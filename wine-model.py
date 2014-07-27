@@ -146,110 +146,86 @@ def pick_random_from_all_bugs():
 @strategy
 def pick_specific_from_random_app():
     """Picks the smallest bug from a random app"""
-    try:
-        app = next(random_apps)
-    except StopIteration:
-        return pick_specific_from_all_bugs()
-    return min(apps[app])
+    for app in random_apps:
+        return min(apps[app])
+    return pick_specific_from_all_bugs()
 
 @strategy
 def pick_random_from_random_app():
     """Picks a random bug from a random app"""
-    try:
-        app = next(random_apps)
-    except StopIteration:
-        return pick_random_from_all_bugs()
-    return random.sample(apps[app],1)[0]
+    for app in random_apps:
+        return random.sample(apps[app],1)[0]
+    return pick_random_from_all_bugs()
 
 @strategy
 def pick_specific_from_specific_app():
-    try:
-        app = next(apps_by_number)
+    for app in apps_by_number:
         return min(apps[app])
-    except StopIteration: 
-        return pick_specific_from_all_bugs() 
+    return pick_specific_from_all_bugs() 
 
 @strategy
 def pick_random_from_specific_app():
-    try:
-        app = next(apps_by_number)
+    for app in apps_by_number:
         return random.sample(apps[app],1)[0]
-    except StopIteration: 
-        return pick_random_from_all_bugs() 
+    return pick_random_from_all_bugs() 
 
 @strategy
 def pick_specific_from_specific_user():
     """Picks the smallest bug from the smallest app from the smallest user"""
-    try:
-        user = next(users_by_number)
-    except StopIteration:
-        return pick_specific_from_specific_app()
-    app = min(users[user])
-    return min(apps[app])
+    for user in users_by_number:
+        app = min(users[user])
+        return min(apps[app])
+    return pick_specific_from_specific_app()
 
 @strategy
 def pick_random_from_specific_user():
     """Picks a random bug from a random app from the smallest user"""
-    try:
-        user = next(users_by_number)
-    except StopIteration:
-        return pick_random_from_random_app()
-    app = random.sample(users[user],1)[0]
-    return random.sample(apps[app],1)[0]
+    for user in users_by_number:
+        app = random.sample(users[user],1)[0]
+        return random.sample(apps[app],1)[0]
+    return pick_random_from_random_app()
 
 @strategy
 def pick_specific_from_random_user():
     """Picks the smallest bug in the smallest app from a random user"""
-    try:
-        user = next(random_users)
-    except StopIteration:
-        return pick_specific_from_random_app()
-    app = min(users[user])
-    return min(apps[app])
+    for user in random_users:
+        app = min(users[user])
+        return min(apps[app])
+    return pick_specific_from_random_app()
 
 @strategy
 def pick_random_from_random_user():
     """Picks a random bug from a random app from a random user"""
-    try:
-        user = next(random_users)
-    except StopIteration:
-        return pick_random_from_random_app()
-    app = random.choice(tuple(users[user]))
-    return random.choice(tuple(apps[app]))
+    for user in random_users:
+        app = random.choice(tuple(users[user]))
+        return random.choice(tuple(apps[app]))
+    return pick_random_from_random_app()
 
 @strategy
 def pick_specific_from_easiest_app():
-    try:
-        app = next(apps_by_easiest)
-    except StopIteration: 
-        return pick_specific_from_all_bugs() 
-    return min(apps[app])
+    for app in apps_by_easiest:
+        return min(apps[app])
+    return pick_specific_from_all_bugs() 
 
 @strategy
 def pick_random_from_easiest_app():
-    try:
-        app = next(apps_by_easiest)
-    except StopIteration: 
-        return pick_random_from_all_bugs() 
-    return random.sample(apps[app],1)[0]
+    for app in apps_by_easiest:
+        return random.sample(apps[app],1)[0]
+    return pick_random_from_all_bugs() 
 
 @strategy
 def pick_specific_from_easiest_user():
-    try:
-        user = next(users_by_easiest)
-    except StopIteration: 
-        return pick_specific_from_easiest_app() 
-    app = min(users[user])
-    return min(apps[app])
+    for user in users_by_easiest:
+        app = min(users[user])
+        return min(apps[app])
+    return pick_specific_from_easiest_app() 
 
 @strategy
 def pick_random_from_easiest_user():
-    try:
-        user = next(users_by_easiest)
-    except StopIteration: 
-        return pick_random_from_easiest_app()
-    app = random.sample(users[user],1)[0]
-    return random.sample(apps[app],1)[0] 
+    for user in users_by_easiest:
+        app = random.sample(users[user],1)[0]
+        return random.sample(apps[app],1)[0]
+    return pick_random_from_easiest_app()
 
 @strategy
 def pick_specific_from_most_common_by_feature():
@@ -259,14 +235,16 @@ def pick_specific_from_most_common_by_feature():
 @strategy
 def pick_specific_from_most_popular_app():
     """Picks a specific bug from the most popular app"""
-    app = next(apps_by_popularity_in_users)
-    return list(apps[app])[0]
+    for app in (apps_by_popularity_in_users):
+        return list(apps[app])[0]
+    return pick_specific_from_all_bugs()
 
 @strategy
 def pick_random_from_most_popular_app():
     """Picks a random bug from the most popular app"""
-    app = next(apps_by_popularity_in_users)
-    return random.sample(apps[app],1)[0]
+    for app in (apps_by_popularity_in_users):
+        return random.sample(apps[app],1)[0]
+    return pick_random_from_all_bugs()
 
 @strategy
 def pick_random_from_easiest_bugs():

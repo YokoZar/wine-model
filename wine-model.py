@@ -75,20 +75,6 @@ else:
 bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number_of_bugs)}
 ###
 
-### Relative probability of bugs and applications
-## bugProbability is a list of the relative probabilities that those bugs will be assigned to an application.  So if bugProbability = [1,2], then the second bug is twice as likely to appear as the first.  Thus really common bugs will have higher numbers.
-## if useAlternativeAppMaker = True, then the minAppBugs and maxAppBugs variables are ignored.  Instead, the highest number in bugProbability is interpretted as 100% and will affect all apps; meanwhile lower numbers will be proportionately less likely to affect an app.  So if bugProbability = [1, 2, 4], then the third bug will affect all apps, the second bug will have a 50% chance of affecting any particular app, and the first bug will have a 25% chance.
-## appProbability, meanwhile, is the relative probability that that application will be listed on a user.  Thus the most popular application will have a higher number.
-# Try pareto-distribution probability.  The 2.2 number was more or less pulled from a hat based on the intuition that a typical bug is about 60 times less likely than the most common bug
-#bugProbability = [random.paretovariate(2.2) for x in range(number_of_bugs)]
-
-# use this guy for Vince's idea of "most apps should have one or two bugs that only affect them" -- have useAlternativeAppMaker = True
-#bugProbability = [number_of_apps] + [1 for x in range(number_of_apps)] + ... # make the relative probability always between 1 and number of Apps, so on average all the "1" bugs will affect one app
-# TODO: implement "80/20" rule here, think about what it means a bit
-# 80/20 rule: make 100 max.  Then last 80% can be 20, and first 20% can be 80...
-bugProbability = [1.0/sqrt(x+1) for x in range(number_of_bugs)] # zipfs law
-# 
-
 appProbability = [random.paretovariate(2.2) for x in range(number_of_apps)]
 ###
 
@@ -131,26 +117,17 @@ def pick_strategy():
 ### Setup functions
 ###
 
-# TODO: reconsider the naming here
-def alternative_make_app(probability, bugs=False):
-    """Returns a set of bug numbers that this app depends on.
+def probability_list_from_zipfs_law(size: int):
+    """Returns a list of floats from 0 to 1 based on a Zipfian distribution"""
+    item_probability = [1.0/sqrt(x+1) for x in range(size)]
+    random.shuffle(item_probability) # Prevent "smallest number" from implying "more likely"
+    return item_probability
 
-    Just like make_app, but not using prior information about number of bugs and instead using the relative probability for every bug. probability instead of relative probability.
-    Inputs:
-    probability, a list of size equal to the number of bugs possible.
-        The values of the probability list are the relative probability of that bug being selected. 1 = normal, .5 = half as likely, 2 = twice as likely, and so on.
-        Basically, for every bug, we do a probability check to see if we should actually do it.
-    bugs, ignored
-    """
-    possibleBugs = len(probability)
+def set_from_fixed_probabilities(probability: list):
+    """Returns a set of numbers by randomly testing to include each one based on probability."""
+    return {item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance}
 
-    maxProbability = max(probability)
-    appBugs = set([]) # There should be no duplicates, and order doesn't matter, so a set is faster than a list here
-    for x in range(possibleBugs):
-        if random.uniform(0, maxProbability) <= probability[x]: #roll the dice
-            appBugs.add(x)
-    return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.    
-
+# TODO: rename to set_from_relative_frequencies
 # TODO: review for speed, possible refactor, possibly make probability+bugs tuples
 def make_app(probability, bugs):
     """Returns a set of bug numbers that this app depends on.
@@ -373,11 +350,8 @@ if enable_log:
 append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
             (number_of_bugs, number_of_apps, number_of_users, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
 
-# TODO: compress
-if useAlternativeAppMaker:
-    apps = {x:alternative_make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(number_of_apps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
-else:
-    apps = {x:make_app(bugProbability, random.randint(minAppBugs,maxAppBugs)) for x in range(number_of_apps)} #applications will have from minAppbugs to maxAppBugs, uniformly distributed
+bug_probability = probability_list_from_zipfs_law(number_of_bugs)
+apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
 
 users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(number_of_users)} #Users will have from minUserApps to maxUserApps, uniformly distributed
 

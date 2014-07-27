@@ -29,8 +29,6 @@ CHART_TITLE = "Development Model"
 RANDOM_SEED = 123456 # set to False to randomize every time
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-MIN_APP_BUGS = 150
-MAX_APP_BUGS = 900
 MIN_USER_APPS = 1
 MAX_USER_APPS = 10
 
@@ -42,12 +40,9 @@ MAX_USER_APPS = 10
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
 number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 
-# TODO: convert to factory functions to pass
-# number_of_bugs_per_app = partial(random.randint(MIN_APP_BUGS,MAX_APP_BUGS))
+# TODO: convert to factory function to pass?
 # number_of_apps_per_user = partial(random.randint(MIN_USER_BUGS,MAX_USER_BUGS))
-minAppBugs, maxAppBugs = MIN_APP_BUGS, MAX_APP_BUGS # Applications pick from between these two numbers using a uniform distribution
-# Set this to True if you want to ignore the above pre-set number of bugs and instead use the alternative App Maker (see bug probability below)
-useAlternativeAppMaker = True
+
 # Number of apps a user uses, not the number of users an app has
 minUserApps, maxUserApps = MIN_USER_APPS, MAX_USER_APPS 
 enable_log = ENABLE_LOG_DEFAULT
@@ -61,10 +56,6 @@ if RANDOM_SEED:
 SOLVED = True
 
 print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
-if not useAlternativeAppMaker:
-    print("From", minAppBugs, "to", maxAppBugs, "bugs per app and from", minUserApps, "to", maxUserApps, "apps per user")
-else:
-    print("Using relative probabilities for individual bugs and from", minUserApps, "to", maxUserApps, "apps per user")
 
 ### Relative difficulty of bugs
 ## bugDifficulty is the number of days it takes to solve a bug.
@@ -131,8 +122,7 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
     """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
     twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
     """
-    if DEBUG and quantity > len(frequency):
-        raise ValueError("Demanding more items than possible!")
+    assert quantity <= len(frequency)
     if quantity == 0:
         return set()
     if not mutate_list:
@@ -143,7 +133,7 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
         point_on_line -= length_of_segment
         if point_on_line < 0:
             frequency[index] = 0
-            return set.union({index}, set_from_relative_frequencies(frequency, quantity - 1, True))
+            return {index} | set_from_relative_frequencies(frequency, quantity - 1, True)
     assert False
 
 ###
@@ -339,19 +329,24 @@ def check_done(goals: dict, solved_tasks: set) -> int:
 ### Simulation setup
 ###
 
-if enable_log:
-    with open(LOGFILE, 'w'): pass
-append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User Apps %i Max User Apps %i \n" % 
-            (number_of_bugs, number_of_apps, number_of_users, minAppBugs, maxAppBugs, minUserApps, maxUserApps) )
+def setup():
+    """Creates apps and users and erases the log"""
+    global apps, users
+    if enable_log:
+        with open(LOGFILE, 'w'): pass
 
-bug_probability = probability_list_from_zipfs_law(number_of_bugs)
-apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
-users = {user:set_from_relative_frequencies(appProbability, random.randint(minUserApps,maxUserApps))
-         for user in range(number_of_users)}
+    bug_probability = probability_list_from_zipfs_law(number_of_bugs)
+    apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
+    average_bugs_per_app = sum([len(apps[x]) for x in apps]) / number_of_apps
+    print("Features generated, averaging", average_bugs_per_app, "items per feature.")
 
-averageBugsPerApp = sum([len(apps[x]) for x in apps]) / number_of_apps
-averageAppsPerUser = sum([len(users[x]) for x in users]) / number_of_users
-print("Applications and users generated, averaging", averageBugsPerApp ,"bugs per app and", averageAppsPerUser ,"apps per user.  Starting simulation...")
+    # TODO: appProbability should be in scope here
+    users = {user:set_from_relative_frequencies(appProbability, random.randint(minUserApps,maxUserApps))
+             for user in range(number_of_users)}
+    average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
+    print("Users generated, averaging", average_apps_per_user, "features per user.")
+
+setup()
 
 ###
 ### Generators, helper functions, and state variables for strategies
@@ -445,10 +440,10 @@ while(True):
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
     if not reported_first_app and workingApps >= 1:
-        print("First app working on day", day)
+        print("First feature working on day", day)
         reported_first_app = True
     if not reported_all_apps and workingApps == number_of_apps:
-        print("All apps working on day", day)
+        print("All features working on day", day)
         reported_all_apps = True
     if not reported_first_user and happyUsers >= 1:
         print("First user happy on day", day)
@@ -484,7 +479,7 @@ while(True):
         bug_in_progress = None
 
     if len(bugsSolved) == number_of_bugs:
-        print("All bugs solved on day", day)
+        print("All items complete on day", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
 

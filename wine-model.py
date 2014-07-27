@@ -13,6 +13,7 @@ import random
 import time
 from math import sqrt
 from operator import itemgetter
+from functools import partial
 import pandas
 import matplotlib.pyplot as plt
 
@@ -29,8 +30,8 @@ CHART_TITLE = "Development Model"
 RANDOM_SEED = 123456 # set to False to randomize every time
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-MIN_USER_APPS = 1
-MAX_USER_APPS = 10
+MIN_APPS_PER_USER = 1
+MAX_APPS_PER_USER = 10
 
 ###
 ### Basic setup
@@ -40,11 +41,16 @@ MAX_USER_APPS = 10
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
 number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500 # TODO: remove, temporary fast for dev mode
 
-# TODO: convert to factory function to pass?
-# number_of_apps_per_user = partial(random.randint(MIN_USER_BUGS,MAX_USER_BUGS))
+def setup_functions():
+    global bug_difficulty_function, bug_probability_function 
+    global app_frequency_function, apps_per_user_function
+    bug_difficulty_function = lambda: abs(int(random.normalvariate(4,3))) + 1
+    bug_probability_function = partial(probability_list_from_zipfs_law, number_of_bugs)
+    app_frequency_function = partial(frequency_list_from_pareto_distribution, number_of_apps)
+    apps_per_user_function = partial(random.randint, MIN_APPS_PER_USER, MAX_APPS_PER_USER)
 
-# Number of apps a user uses, not the number of users an app has
-minUserApps, maxUserApps = MIN_USER_APPS, MAX_USER_APPS 
+#bug_difficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number_of_bugs)}
+
 enable_log = ENABLE_LOG_DEFAULT
 if RANDOM_SEED: 
     random.seed(a=RANDOM_SEED)
@@ -54,24 +60,6 @@ if RANDOM_SEED:
 ###
 
 SOLVED = True
-
-print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
-
-### Relative difficulty of bugs
-## bugDifficulty is the number of days it takes to solve a bug.
-## When a bug is worked on, it's difficulty is reduced by one until it is 0, so some bugs need to be "solved" (worked on) multiple times.
-# Set all to 1 to have all bugs be equally difficult.
-#bugDifficulty = {x:1 for x in range(number_of_bugs)}
-## Here, a positive, almost normally distributed number of days per bug.  Average is just under 5 days per bug, with about 10% taking only 1 day.
-bugDifficulty = {x:abs(int(random.normalvariate(4,3))) + 1 for x in range(number_of_bugs)}
-###
-
-appProbability = [random.paretovariate(2.2) for x in range(number_of_apps)]
-###
-
-totalTimeToSolve = sum(bugDifficulty.values())
-
-print(totalTimeToSolve, "total days to solve every bug, an average of", totalTimeToSolve/number_of_bugs, "days per bug.")
 
 # TODO: make neater, let it take more configuration data rather than be manually edited
 def pick_strategy():
@@ -117,6 +105,10 @@ def probability_list_from_zipfs_law(size: int):
 def set_from_fixed_probabilities(probability: list):
     """Returns a set of numbers by randomly testing to include each one based on probability."""
     return {item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance}
+
+def frequency_list_from_pareto_distribution(size: int):
+    """Returns a set of relative probabilities based on a pareto distribution"""
+    return [random.paretovariate(2.2) for x in range(size)]
 
 def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False):
     """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
@@ -283,7 +275,7 @@ def pick_random_from_most_popular_app():
 @strategy
 def pick_random_from_easiest_bugs():
     easiest_difficulty = None
-    for bug, difficulty in bugDifficulty.items():
+    for bug, difficulty in bug_difficulty.items():
         if 0 < difficulty and (easiest_difficulty == None or difficulty < easiest_difficulty):
             candidates = {bug}
             easiest_difficulty = difficulty
@@ -294,59 +286,13 @@ def pick_random_from_easiest_bugs():
 @strategy
 def pick_specific_from_easiest_bugs():
     easiest_difficulty = None
-    for bug, difficulty in bugDifficulty.items():
+    for bug, difficulty in bug_difficulty.items():
         if 0 < difficulty <= 1: # Doesn't get any easier
             return bug
         if difficulty > 1 and (easiest_difficulty is None or difficulty < easiest_difficulty):
             easiest_difficulty = difficulty
             easiest_bug = bug
     return easiest_bug
-
-###
-### Helper functions
-###
-
-def append_to_log(entry):
-    if enable_log:
-        with open(LOGFILE, 'a') as logfile:
-            logfile.write(entry)
-
-def check_done(goals: dict, solved_tasks: set) -> int:
-    """Checks a dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
-    solved = 0
-    for goal, tasks in goals.items():
-        if tasks is not SOLVED:
-            remaining_tasks = tasks - solved_tasks
-            if remaining_tasks:
-                goals[goal] = remaining_tasks
-                continue
-            else:
-                goals[goal] = SOLVED
-        solved += 1
-    return solved
-
-###
-### Simulation setup
-###
-
-def setup():
-    """Creates apps and users and erases the log"""
-    global apps, users
-    if enable_log:
-        with open(LOGFILE, 'w'): pass
-
-    bug_probability = probability_list_from_zipfs_law(number_of_bugs)
-    apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
-    average_bugs_per_app = sum([len(apps[x]) for x in apps]) / number_of_apps
-    print("Features generated, averaging", average_bugs_per_app, "items per feature.")
-
-    # TODO: appProbability should be in scope here
-    users = {user:set_from_relative_frequencies(appProbability, random.randint(minUserApps,maxUserApps))
-             for user in range(number_of_users)}
-    average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
-    print("Users generated, averaging", average_apps_per_user, "features per user.")
-
-setup()
 
 ###
 ### Generators, helper functions, and state variables for strategies
@@ -400,6 +346,56 @@ def random_bugs_generator():
         open_bugs -= bugsSolved
         yield random.sample(open_bugs,1)[0]
 
+###
+### Helper functions for running simulation
+###
+
+def append_to_log(entry):
+    if enable_log:
+        with open(LOGFILE, 'a') as logfile:
+            logfile.write(entry)
+
+def check_done(goals: dict, solved_tasks: set) -> int:
+    """Checks a dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
+    solved = 0
+    for goal, tasks in goals.items():
+        if tasks is not SOLVED:
+            remaining_tasks = tasks - solved_tasks
+            if remaining_tasks:
+                goals[goal] = remaining_tasks
+                continue
+            else:
+                goals[goal] = SOLVED
+        solved += 1
+    return solved
+
+def setup():
+    """Creates apps and users and erases the log"""
+    global apps, users, bug_difficulty
+    if enable_log:
+        with open(LOGFILE, 'w'): pass
+
+    setup_functions()
+    bug_difficulty = {bug: bug_difficulty_function() for bug in range(number_of_bugs)}
+
+    bug_probability = bug_probability_function()
+    apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
+    average_bugs_per_app = sum([len(apps[x]) for x in apps]) / number_of_apps
+    print("Features generated, averaging", average_bugs_per_app, "items per feature.")
+
+    app_frequency = app_frequency_function()
+    users = {user:set_from_relative_frequencies(app_frequency, apps_per_user_function())
+             for user in range(number_of_users)}
+    average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
+    print("Users generated, averaging", average_apps_per_user, "features per user.")
+
+###
+### Simulation begins here
+###
+
+print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
+setup()
+
 # These are nonlocal instances of the generators in order to preserve their state
 bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
 bugs_by_number = bugs_by_number_generator()
@@ -412,9 +408,8 @@ random_bugs = random_bugs_generator()
 random_apps = goals_by_random_generator(apps)
 random_users = goals_by_random_generator(users)
 
-###
-### Simulation begins here
-###
+total_time_to_solve = sum(bug_difficulty.values())
+print(total_time_to_solve, "total time units to finish every work item.")
 
 bugsSolved = set([]) # an (ordered?) list of integers of all bugs solved so far
 day = 0
@@ -429,8 +424,7 @@ reported_all_apps, reported_all_users = False, False
 append_to_log("Time, % Work Items Completed, % Features Completed, % Happy Users \n")
 chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
 
-# TODO: make this an int to avoid 0.89 from float weirdness
-progressIndicator = 0.10 # When to first show 'working on day' (x) progress indicators
+show_at_percent_done = 10 # When to first show 'working on day' (x) progress indicators
 
 while(True): 
     # Check for newly working apps every day we solved a bug in the previous day
@@ -440,21 +434,21 @@ while(True):
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
     if not reported_first_app and workingApps >= 1:
-        print("First feature working on day", day)
+        print("First feature working at time", day)
         reported_first_app = True
     if not reported_all_apps and workingApps == number_of_apps:
-        print("All features working on day", day)
+        print("All features working at time", day)
         reported_all_apps = True
     if not reported_first_user and happyUsers >= 1:
-        print("First user happy on day", day)
+        print("First user happy at time", day)
         reported_first_user = True
     if not reported_all_users and happyUsers == number_of_users:
-        print("All users happy on day", day)
+        print("All users happy at time", day)
         reported_all_users = True
 
-    if day >= totalTimeToSolve*progressIndicator:
-        print("%i%% complete on day: " % (progressIndicator*100), day)
-        progressIndicator += 0.10
+    if day >= total_time_to_solve*(show_at_percent_done/100):
+        print("%i%% complete at time: " % (show_at_percent_done), day)
+        show_at_percent_done += 10
 
     append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/number_of_bugs, workingApps/number_of_apps, happyUsers/number_of_users) )
     chartData[CHART_BUGS].append(len(bugsSolved)*100/number_of_bugs)
@@ -471,15 +465,15 @@ while(True):
     working_app_days += workingApps
     happy_user_days += happyUsers
 
-    bugDifficulty[bug_in_progress] -= 1
+    bug_difficulty[bug_in_progress] -= 1
     if DEBUG: print("worked bug:", bug_in_progress)
-    if bugDifficulty[bug_in_progress] <= 0:
+    if bug_difficulty[bug_in_progress] <= 0:
         bugsSolved.add(bug_in_progress)
         if DEBUG: print("solved bug:", bug_in_progress)
         bug_in_progress = None
 
     if len(bugsSolved) == number_of_bugs:
-        print("All items complete on day", day)
+        print("100% complete at time: ", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
 

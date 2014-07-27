@@ -114,7 +114,7 @@ def pick_strategy():
 ### ----------------------------------------------------------------------------
 
 ###
-### Setup functions
+### App and User Setup
 ###
 
 def probability_list_from_zipfs_law(size: int):
@@ -127,30 +127,24 @@ def set_from_fixed_probabilities(probability: list):
     """Returns a set of numbers by randomly testing to include each one based on probability."""
     return {item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance}
 
-# TODO: rename to set_from_relative_frequencies
-# TODO: review for speed, possible refactor, possibly make probability+bugs tuples
-def make_app(probability, bugs):
-    """Returns a set of bug numbers that this app depends on.
-    
-    Inputs:
-    probability, a list of size equal to the number of bugs possible.
-        The values of the probability list are the relative probability of that bug being selected. 1 = normal, .5 = half as likely, 2 = twice as likely, and so on.
-        Basically, when we pick a bug, we do a probability check to see if we should actually do it.  Otherwise we roll again.
-    bugs, an integer for the number of bugs this application will have.
+def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False):
+    """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
+    twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
     """
-    possibleBugs = len(probability)
-    if bugs > possibleBugs: 
-        raise(IndexError) # Bugs is greater than possible bugs
-
-    maxProbability = max(probability)
-    appBugs = set([]) # There should be no duplicates, and order doesn't matter, so a set is faster than a list here
-    for x in range(bugs):
-        while(True):
-            thisBug = random.randint(0,possibleBugs - 1) #consider a bug.  We subtract 1 here due to the len command.
-            if (thisBug not in appBugs) and random.uniform(0, maxProbability) <= probability[thisBug]: #roll the dice, but only if this is a new bug
-                appBugs.add(thisBug)
-                break # keep trying until we succeed
-    return set(appBugs) # We used to make this a frozen set, but now we trim the app in check_apps so subsequent scans of it go faster.
+    if DEBUG and quantity > len(frequency):
+        raise ValueError("Demanding more items than possible!")
+    if quantity == 0:
+        return set()
+    if not mutate_list:
+        frequency = frequency.copy() 
+    length_of_ruler = sum(frequency)
+    point_on_line = random.uniform(0,length_of_ruler)
+    for (index, length_of_segment) in enumerate(frequency):
+        point_on_line -= length_of_segment
+        if point_on_line < 0:
+            frequency[index] = 0
+            return set.union({index}, set_from_relative_frequencies(frequency, quantity - 1, True))
+    assert False
 
 ###
 ### Strategies
@@ -352,8 +346,8 @@ append_to_log("Bugs %i Apps %i Users %i Min App Bugs %i Max App Bugs %i Min User
 
 bug_probability = probability_list_from_zipfs_law(number_of_bugs)
 apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
-
-users = {x:make_app(appProbability, random.randint(minUserApps,maxUserApps)) for x in range(number_of_users)} #Users will have from minUserApps to maxUserApps, uniformly distributed
+users = {user:set_from_relative_frequencies(appProbability, random.randint(minUserApps,maxUserApps))
+         for user in range(number_of_users)}
 
 averageBugsPerApp = sum([len(apps[x]) for x in apps]) / number_of_apps
 averageAppsPerUser = sum([len(users[x]) for x in users]) / number_of_users

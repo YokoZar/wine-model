@@ -59,9 +59,6 @@ if RANDOM_SEED:
 ###
 ###
 
-SOLVED = True
-
-# TODO: make neater, let it take more configuration data rather than be manually edited
 def pick_strategy():
     """ Returns a strategy function based on the day.  This is meant to be modified by user."""
     #return random.choice(strategies)
@@ -132,6 +129,8 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
 ### Strategies
 ###
 
+SOLVED = True
+
 strategies = []
 def strategy(function):
     strategies.append(function)
@@ -139,7 +138,7 @@ def strategy(function):
 
 @strategy
 def pick_specific_from_all_bugs():
-    """Picks the smallest bug number not in the bugsSolved list"""
+    """Picks the smallest bug number not in the solved_bugs list"""
     return next(bugs_by_number)
 
 @strategy
@@ -330,7 +329,7 @@ def goals_by_random_generator(goals: dict):
 
 def bugs_by_popularity_in_apps_generator():
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
-        while bug not in bugsSolved: yield bug
+        while bug not in solved_bugs: yield bug
 
 def apps_by_popularity_in_users_generator():
     for app in prioritize(goals=users, total_tasks=number_of_apps):
@@ -338,12 +337,12 @@ def apps_by_popularity_in_users_generator():
 
 def bugs_by_number_generator():
     for bug in range(number_of_bugs):
-        while bug not in bugsSolved: yield bug
+        while bug not in solved_bugs: yield bug
 
 def random_bugs_generator():
-    open_bugs = set(range(number_of_bugs)) - bugsSolved
+    open_bugs = set(range(number_of_bugs)) - solved_bugs
     while True:
-        open_bugs -= bugsSolved
+        open_bugs -= solved_bugs
         yield random.sample(open_bugs,1)[0]
 
 ###
@@ -411,7 +410,7 @@ random_users = goals_by_random_generator(users)
 total_time_to_solve = sum(bug_difficulty.values())
 print(total_time_to_solve, "total time units to finish every work item.")
 
-bugsSolved = set([]) # an (ordered?) list of integers of all bugs solved so far
+solved_bugs = set()
 day = 0
 
 timespent = time.clock()
@@ -422,27 +421,27 @@ reported_first_app, reported_first_user = False, False
 reported_all_apps, reported_all_users = False, False
 
 append_to_log("Time, % Work Items Completed, % Features Completed, % Happy Users \n")
-chartData = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
+chart_data = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
 
 show_at_percent_done = 10 # When to first show 'working on day' (x) progress indicators
 
 while(True): 
     # Check for newly working apps every day we solved a bug in the previous day
     if bug_in_progress is None:
-        workingApps = check_done(apps,bugsSolved)
-        happyUsers = check_done(users,set(x for x in apps if apps[x] is SOLVED))
+        working_apps = check_done(apps,solved_bugs)
+        happy_users = check_done(users,set(x for x in apps if apps[x] is SOLVED))
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
-    if not reported_first_app and workingApps >= 1:
+    if not reported_first_app and working_apps >= 1:
         print("First feature working at time", day)
         reported_first_app = True
-    if not reported_all_apps and workingApps == number_of_apps:
+    if not reported_all_apps and working_apps == number_of_apps:
         print("All features working at time", day)
         reported_all_apps = True
-    if not reported_first_user and happyUsers >= 1:
+    if not reported_first_user and happy_users >= 1:
         print("First user happy at time", day)
         reported_first_user = True
-    if not reported_all_users and happyUsers == number_of_users:
+    if not reported_all_users and happy_users == number_of_users:
         print("All users happy at time", day)
         reported_all_users = True
 
@@ -450,29 +449,29 @@ while(True):
         print("%i%% complete at time: " % (show_at_percent_done), day)
         show_at_percent_done += 10
 
-    append_to_log("%f, %f, %f, %f \n" % (float(day), len(bugsSolved)/number_of_bugs, workingApps/number_of_apps, happyUsers/number_of_users) )
-    chartData[CHART_BUGS].append(len(bugsSolved)*100/number_of_bugs)
-    chartData[CHART_APPS].append(workingApps*100/number_of_apps)
-    chartData[CHART_USERS].append(happyUsers*100/number_of_users)
+    append_to_log("%f, %f, %f, %f \n" % (float(day), len(solved_bugs)/number_of_bugs, working_apps/number_of_apps, happy_users/number_of_users) )
+    chart_data[CHART_BUGS].append(len(solved_bugs)*100/number_of_bugs)
+    chart_data[CHART_APPS].append(working_apps*100/number_of_apps)
+    chart_data[CHART_USERS].append(happy_users*100/number_of_users)
 
     if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
         bug_in_progress = pick_strategy()()
-        if DEBUG and bug_in_progress in bugsSolved:
+        if DEBUG and bug_in_progress in solved_bugs:
             error = "Working already complete task: " + str(bug_in_progress) + " on day " + str(day)
             raise ValueError(error)
 
     day += 1 
-    working_app_days += workingApps
-    happy_user_days += happyUsers
+    working_app_days += working_apps
+    happy_user_days += happy_users
 
     bug_difficulty[bug_in_progress] -= 1
     if DEBUG: print("worked bug:", bug_in_progress)
     if bug_difficulty[bug_in_progress] <= 0:
-        bugsSolved.add(bug_in_progress)
+        solved_bugs.add(bug_in_progress)
         if DEBUG: print("solved bug:", bug_in_progress)
         bug_in_progress = None
 
-    if len(bugsSolved) == number_of_bugs:
+    if len(solved_bugs) == number_of_bugs:
         print("100% complete at time: ", day)
         append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
         break
@@ -486,7 +485,7 @@ print("Average happy users:", happy_user_days/day)
 
 print("Now making chart.")
 
-chart = pandas.DataFrame(chartData)
+chart = pandas.DataFrame(chart_data)
 chart.plot()
 plt.title(CHART_TITLE)
 plt.ylabel(CHART_LABEL_Y)

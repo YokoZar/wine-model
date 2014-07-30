@@ -39,7 +39,6 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
-RANDOM_SEED = 1234
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -87,6 +86,8 @@ def pick_strategy():
 ###  You shouldn't need to modify anything below here to just run a simulation
 ### ----------------------------------------------------------------------------
 
+DONE = True
+
 ###
 ### App and User Setup
 ###
@@ -126,8 +127,6 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
 ###
 ### Strategies
 ###
-
-SOLVED = True
 
 strategies = []
 def strategy(function):
@@ -277,28 +276,28 @@ def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
     count = {task:0 for task in range(total_tasks)}
     for goal, tasks in goals.items():
-        if tasks is not SOLVED:
+        if tasks is not DONE:
             for task in tasks:
                 count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
 
 def goals_by_number_generator(goals: dict):
     for goal in goals:
-        while goals[goal] is not SOLVED: yield goal
+        while goals[goal] is not DONE: yield goal
 
 def goals_by_easiest_generator(goals: dict):
     """Generator to yield goals based on which has the fewest tasks remaining"""
-    goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+    goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
     while goalsizes:
         yield min(goalsizes, key=itemgetter(1))[0]
-        goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not SOLVED]
+        goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
 
 def goals_by_random_generator(goals: dict):
     """Generator to yield unsolved goals at random"""
     unfinished_goals = set(goals)
     while unfinished_goals:
         goal = random.choice(tuple(unfinished_goals))
-        if goals[goal] is SOLVED:
+        if goals[goal] is DONE:
             unfinished_goals.remove(goal)
         else:
             yield goal
@@ -309,7 +308,7 @@ def bugs_by_popularity_in_apps_generator():
 
 def apps_by_popularity_in_users_generator():
     for app in prioritize(goals=users, total_tasks=number_of_apps):
-        while apps[app] is not SOLVED: yield app
+        while apps[app] is not DONE: yield app
 
 def bugs_by_number_generator():
     for bug in range(number_of_bugs):
@@ -334,13 +333,13 @@ def check_done(goals: dict, solved_tasks: set) -> int:
     """Checks a dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
     solved = 0
     for goal, tasks in goals.items():
-        if tasks is not SOLVED:
+        if tasks is not DONE:
             remaining_tasks = tasks - solved_tasks
             if remaining_tasks:
                 goals[goal] = remaining_tasks
                 continue
             else:
-                goals[goal] = SOLVED
+                goals[goal] = DONE
         solved += 1
     return solved
 
@@ -405,7 +404,7 @@ while(True):
     # Check for newly working apps every day we solved a bug in the previous day
     if bug_in_progress is None:
         working_apps = check_done(apps,solved_bugs)
-        happy_users = check_done(users,set(x for x in apps if apps[x] is SOLVED))
+        happy_users = check_done(users,set(x for x in apps if apps[x] is DONE))
         # TODO: refactor above to maybe not reconstruct solved apps every time
 
     if not reported_first_app and working_apps >= 1:

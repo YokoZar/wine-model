@@ -315,7 +315,7 @@ def bugs_by_number_generator():
         while bug not in solved_bugs: yield bug
 
 def random_bugs_generator():
-    open_bugs = set(range(number_of_bugs)) - solved_bugs
+    open_bugs = set(range(number_of_bugs))
     while True:
         open_bugs -= solved_bugs
         yield random.choice(tuple(open_bugs))

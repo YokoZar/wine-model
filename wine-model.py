@@ -27,6 +27,7 @@ CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Comparing Two Development Models"
+CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
@@ -474,7 +475,8 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             show_at_percent_done += 10
 
         append_to_log(project.make_log_item())
-        chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
+        if CHART_TASKS_COMPLETE:
+            chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
         chart_data[project.name + ": " + CHART_APPS].append(project.working_apps*100/number_of_apps)
         chart_data[project.name + ": " + CHART_USERS].append(project.happy_users*100/number_of_users)
 
@@ -515,6 +517,7 @@ for project in projects:
 
 print("Now making chart.")
 
+chart_data = {k:v for (k,v) in chart_data.items() if len(v) > 0} # Remove uncharted things
 chart = pandas.DataFrame(chart_data)
 params = {'legend.fontsize': 10,
           'legend.linewidth': 2}

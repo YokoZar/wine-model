@@ -125,6 +125,16 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
     assert False
 
 ###
+### TODO: Class-based project WIP
+###
+
+class Project:
+    def __init__(self, users, apps, bug_difficulty):
+        self.users = users
+        self.apps = apps
+        self.bug_difficulty = bug_difficulty
+
+###
 ### Strategies
 ###
 
@@ -345,7 +355,8 @@ def check_done(goals: dict, solved_tasks: set) -> int:
 
 def setup():
     """Creates apps and users and erases the log"""
-    global apps, users, bug_difficulty
+    global apps, users, bug_difficulty  # TODO: these should die after this function
+    global project1, project2
     if enable_log:
         with open(LOGFILE, 'w'): pass
 
@@ -362,6 +373,9 @@ def setup():
              for user in range(number_of_users)}
     average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
     print("Users generated, averaging", average_apps_per_user, "features per user.")
+
+    project1 = Project(users, apps, bug_difficulty)
+    project2 = Project(users.copy(), apps.copy(), bug_difficulty.copy())
 
 ###
 ### Simulation begins here

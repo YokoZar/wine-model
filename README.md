@@ -24,6 +24,9 @@ upwards.  Initially, the project mostly gains happy users as individuals one at 
 relatively distinct feature sets.  Eventually, however, there is enough "collateral damage" as work
 on one task inadvertently satisfies diverse groups of users who were otherwise almost happy.
 
+The script simultanteously tests two different strategies for the same project so that they can be
+directly compared.
+
 Usage:
 ==========
 

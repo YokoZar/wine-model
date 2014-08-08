@@ -30,6 +30,9 @@ CHART_TITLE = "Development Model"
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
+PROJECT_1_NAME = "First strategy"
+PROJECT_2_NAME = "Second strategy"
+
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
 
@@ -39,6 +42,7 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
+number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -56,8 +60,15 @@ if RANDOM_SEED:
 ### Strategy -- meant to be modified by user
 ###
 
+def strategy_chooser(name):
+    if name == "First strategy": return pick_strategy
+    return default_strategy
+
+#TODO: rename "strategies" -> "pick_methods"    
+
 def pick_strategy():
     """ Returns a strategy function based on the day.  This is meant to be modified by user."""
+    return pick_specific_from_all_bugs
     return random.choice(strategies)
     # Available strategies:
     # pick_specific_from_all_bugs pick_random_from_all_bugs
@@ -81,6 +92,8 @@ def pick_strategy():
     if day %5 == 1: return pick_random_from_easiest_bugs
     if day %5 == 0: return pick_random_from_easiest_user
 
+def default_strategy():
+    return pick_specific_from_specific_app
 
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
@@ -125,18 +138,9 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
     assert False
 
 ###
-### TODO: Class-based project WIP
-###
-
-class Project:
-    def __init__(self, users, apps, bug_difficulty):
-        self.users = users
-        self.apps = apps
-        self.bug_difficulty = bug_difficulty
-
-###
 ### Strategies
 ###
+# TODO: project as parameter for all strategies
 
 strategies = []
 def strategy(function):
@@ -144,9 +148,9 @@ def strategy(function):
     return function
 
 @strategy
-def pick_specific_from_all_bugs():
+def pick_specific_from_all_bugs(project):
     """Picks the smallest bug number not in the solved_bugs list"""
-    return next(bugs_by_number)
+    return next(project.bugs_by_number)
 
 @strategy
 def pick_random_from_all_bugs():
@@ -168,10 +172,10 @@ def pick_random_from_random_app():
     return pick_random_from_all_bugs()
 
 @strategy
-def pick_specific_from_specific_app():
-    for app in apps_by_number:
-        return min(apps[app])
-    return pick_specific_from_all_bugs() 
+def pick_specific_from_specific_app(project):
+    for app in project.apps_by_number:
+        return min(project.apps[app])
+    return pick_specific_from_all_bugs(project) 
 
 @strategy
 def pick_random_from_specific_app():
@@ -279,6 +283,49 @@ def pick_specific_from_easiest_bugs():
     return easiest_bug
 
 ###
+### TODO: Class-based project WIP
+###
+
+class Project:
+    def __init__(self, users, apps, bug_difficulty, name):
+        self.users = users
+        self.apps = apps
+        self.bug_difficulty = bug_difficulty
+        self.solved_bugs = set()
+        self.name = name
+        self.get_strategy = strategy_chooser(name)
+
+        # Class-wide generators to preserve state
+        self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
+        self.bugs_by_number = bugs_by_number_generator(self)
+        self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
+        self.apps_by_number = goals_by_number_generator(self.apps)
+        self.apps_by_easiest = goals_by_easiest_generator(self.apps)
+        self.users_by_number = goals_by_number_generator(self.users)
+        self.users_by_easiest = goals_by_easiest_generator(self.users)
+        self.random_bugs = random_bugs_generator()
+        self.random_apps = goals_by_random_generator(self.apps)
+        self.random_users = goals_by_random_generator(self.users)
+        
+        self.working_app_days = 0
+        self.happy_user_days = 0
+        self.bug_in_progress = None
+        self.reported_first_app, self.reported_first_user = False, False
+        self.reported_all_apps, self.reported_all_users = False, False
+
+    def make_log_item(self):
+        log = str(self.name) + ", "
+        log += str(day) + ", "
+        log += str(len(self.solved_bugs)/number_of_bugs) + ", "
+        log += str(self.working_apps/number_of_apps) + ", "
+        log += str(self.happy_users/number_of_users) + "\n"
+        return log
+
+    def choose_bug(self):
+        strat = self.get_strategy()
+        return strat(self)
+
+###
 ### Generators, helper functions, and state variables for strategies
 ###
 
@@ -320,9 +367,9 @@ def apps_by_popularity_in_users_generator():
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not DONE: yield app
 
-def bugs_by_number_generator():
+def bugs_by_number_generator(self):
     for bug in range(number_of_bugs):
-        while bug not in solved_bugs: yield bug
+        while bug not in self.solved_bugs: yield bug
 
 def random_bugs_generator():
     open_bugs = set(range(number_of_bugs))
@@ -355,13 +402,16 @@ def check_done(goals: dict, solved_tasks: set) -> int:
 
 def setup():
     """Creates apps and users and erases the log"""
-    global apps, users, bug_difficulty  # TODO: these should die after this function
-    global project1, project2
+    global project1, project2, projects
+    global total_time_to_solve
     if enable_log:
         with open(LOGFILE, 'w'): pass
 
     setup_functions()
+
     bug_difficulty = {bug: bug_difficulty_function() for bug in range(number_of_bugs)}
+    total_time_to_solve = sum(bug_difficulty.values())
+    print("Work items generated, with", total_time_to_solve, "total time to finish every work item.")
 
     bug_probability = bug_probability_function()
     apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
@@ -374,8 +424,9 @@ def setup():
     average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
     print("Users generated, averaging", average_apps_per_user, "features per user.")
 
-    project1 = Project(users, apps, bug_difficulty)
-    project2 = Project(users.copy(), apps.copy(), bug_difficulty.copy())
+    project1 = Project(users, apps, bug_difficulty, PROJECT_1_NAME)
+    project2 = Project(users.copy(), apps.copy(), bug_difficulty.copy(), PROJECT_2_NAME)
+    projects = [project1, project2]
 
 ###
 ### Simulation begins here
@@ -384,93 +435,84 @@ def setup():
 print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
 setup()
 
-# These are nonlocal instances of the generators in order to preserve their state
-bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
-bugs_by_number = bugs_by_number_generator()
-apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
-apps_by_number = goals_by_number_generator(apps)
-apps_by_easiest = goals_by_easiest_generator(apps)
-users_by_number = goals_by_number_generator(users)
-users_by_easiest = goals_by_easiest_generator(users)
-random_bugs = random_bugs_generator()
-random_apps = goals_by_random_generator(apps)
-random_users = goals_by_random_generator(users)
-
-total_time_to_solve = sum(bug_difficulty.values())
-print(total_time_to_solve, "total time units to finish every work item.")
-
-solved_bugs = set()
 day = 0
 
 timespent = time.clock()
-working_app_days = 0
-happy_user_days = 0
-bug_in_progress = None
-reported_first_app, reported_first_user = False, False
-reported_all_apps, reported_all_users = False, False
 
 append_to_log("Time, % Work Items Completed, % Features Completed, % Happy Users \n")
-chart_data = {CHART_BUGS: [], CHART_APPS : [], CHART_USERS : []}
+chart_data = {}
+for project in projects:
+    name = project.name
+    chart_data.update({name+": "+CHART_BUGS: [], name+": "+CHART_APPS: [], name+": "+CHART_USERS: []})
 
 show_at_percent_done = 10 # When to first show 'working on day' (x) progress indicators
+bugs_remaining = True
 
-while(True): 
-    # Check for newly working apps every day we solved a bug in the previous day
-    if bug_in_progress is None:
-        working_apps = check_done(apps,solved_bugs)
-        happy_users = check_done(users,set(x for x in apps if apps[x] is DONE))
-        # TODO: refactor above to maybe not reconstruct solved apps every time
+while(bugs_remaining): # TODO: just use the inner for loop to cycle over projects
+    for project in projects:
+        # Check for newly working apps every day we solved a bug in the previous day
+        if project.bug_in_progress is None:
+            project.working_apps = check_done(project.apps,project.solved_bugs)
+            finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
+            project.happy_users = check_done(project.users,finished_apps)
+            # TODO: refactor above to maybe not reconstruct solved apps every time
 
-    if not reported_first_app and working_apps >= 1:
-        print("First feature working at time", day)
-        reported_first_app = True
-    if not reported_all_apps and working_apps == number_of_apps:
-        print("All features working at time", day)
-        reported_all_apps = True
-    if not reported_first_user and happy_users >= 1:
-        print("First user happy at time", day)
-        reported_first_user = True
-    if not reported_all_users and happy_users == number_of_users:
-        print("All users happy at time", day)
-        reported_all_users = True
+        if not project.reported_first_app and project.working_apps >= 1:
+            print("First feature working at time", day)
+            project.reported_first_app = True
+        if not project.reported_all_apps and project.working_apps == number_of_apps:
+            print("All features working at time", day)
+            project.reported_all_apps = True
+        if not project.reported_first_user and project.happy_users >= 1:
+            print("First user happy at time", day)
+            project.reported_first_user = True
+        if not project.reported_all_users and project.happy_users == number_of_users:
+            print("All users happy at time", day)
+            project.reported_all_users = True
 
-    if day >= total_time_to_solve*(show_at_percent_done/100):
-        print("%i%% complete at time: " % (show_at_percent_done), day)
-        show_at_percent_done += 10
+        if day >= total_time_to_solve*(show_at_percent_done/100):
+            print("%i%% complete at time: " % (show_at_percent_done), day)
+            show_at_percent_done += 10
 
-    append_to_log("%f, %f, %f, %f \n" % (float(day), len(solved_bugs)/number_of_bugs, working_apps/number_of_apps, happy_users/number_of_users) )
-    chart_data[CHART_BUGS].append(len(solved_bugs)*100/number_of_bugs)
-    chart_data[CHART_APPS].append(working_apps*100/number_of_apps)
-    chart_data[CHART_USERS].append(happy_users*100/number_of_users)
+        append_to_log(project.make_log_item())
+        chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
+        chart_data[project.name + ": " + CHART_APPS].append(project.working_apps*100/number_of_apps)
+        chart_data[project.name + ": " + CHART_USERS].append(project.happy_users*100/number_of_users)
 
-    if bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
-        bug_in_progress = pick_strategy()()
-        if DEBUG and bug_in_progress in solved_bugs:
-            error = "Working already complete task: " + str(bug_in_progress) + " on day " + str(day)
-            raise ValueError(error)
+        if project.bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
+            project.bug_in_progress = project.choose_bug()
+            assert project.bug_in_progress not in project.solved_bugs
+
+        # TODO: convert to class method
+        project.working_app_days += project.working_apps
+        project.happy_user_days += project.happy_users
+
+        project.bug_difficulty[project.bug_in_progress] -= 1
+        if DEBUG: print("worked bug:", project.bug_in_progress)
+        if project.bug_difficulty[project.bug_in_progress] <= 0:
+            project.solved_bugs.add(project.bug_in_progress)
+            if DEBUG: print("solved bug:", project.bug_in_progress)
+            project.bug_in_progress = None
+
+        if len(project.solved_bugs) == number_of_bugs:
+            print("100% complete at time: ", day + 1)
+            #append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
+            append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
+            bugs_remaining = False
 
     day += 1 
-    working_app_days += working_apps
-    happy_user_days += happy_users
 
-    bug_difficulty[bug_in_progress] -= 1
-    if DEBUG: print("worked bug:", bug_in_progress)
-    if bug_difficulty[bug_in_progress] <= 0:
-        solved_bugs.add(bug_in_progress)
-        if DEBUG: print("solved bug:", bug_in_progress)
-        bug_in_progress = None
 
-    if len(solved_bugs) == number_of_bugs:
-        print("100% complete at time: ", day)
-        append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
-        break
 
 # TODO: make optional command line output
 if DEBUG: print("Available strategies:", " ".join(f.__name__ for f in strategies))
 
 print("Time spent running simulation:", (time.clock() - timespent))
-print("Average features working:", working_app_days/day)
-print("Average happy users:", happy_user_days/day)
+
+for project in projects:
+    print("---", project.name, "---")
+    print("Average features working:", project.working_app_days/day)
+    print("Average happy users:", project.happy_user_days/day)
 
 print("Now making chart.")
 

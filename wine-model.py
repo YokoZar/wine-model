@@ -31,8 +31,7 @@ CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-PROJECT_1_NAME = "Most popular feature"
-PROJECT_2_NAME = "Easiest feature"
+PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -79,6 +78,7 @@ def strategy_chooser(name):
     if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
     if name == "Easiest feature": return lambda: pick_specific_from_easiest_app
     if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
+    if name == "Satisfy arbitrary user": return lambda: pick_specific_from_specific_user
     return default_strategy
 
 def rotate_strategy():
@@ -402,7 +402,7 @@ def check_done(goals: dict, solved_tasks: set) -> int:
 
 def setup():
     """Creates apps and users and erases the log"""
-    global project1, project2, projects
+    global projects
     global total_time_to_solve
     if enable_log:
         with open(LOGFILE, 'w'): pass
@@ -424,9 +424,8 @@ def setup():
     average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
     print("Users generated, averaging", average_apps_per_user, "features per user.")
 
-    project1 = Project(users, apps, bug_difficulty, PROJECT_1_NAME)
-    project2 = Project(users.copy(), apps.copy(), bug_difficulty.copy(), PROJECT_2_NAME)
-    projects = [project1, project2]
+    assert PROJECT_NAMES
+    projects = [Project(users.copy(), apps.copy(), bug_difficulty.copy(), name) for name in PROJECT_NAMES]
 
 ###
 ### Simulation begins here
@@ -455,7 +454,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             project.working_apps = check_done(project.apps,project.solved_bugs)
             finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
             project.happy_users = check_done(project.users,finished_apps)
-            # TODO: refactor above to maybe not reconstruct solved apps every time
+            # TODO: refactor above to maybe not reconstruct finished apps every time
 
         if not project.reported_first_app and project.working_apps >= 1:
             print("First feature working for", project.name, "at time", day)

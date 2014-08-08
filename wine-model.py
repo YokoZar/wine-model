@@ -31,7 +31,7 @@ RANDOM_SEED = False # Set to a constant to directly compare strategies from one 
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 PROJECT_1_NAME = "Most popular feature"
-PROJECT_2_NAME = "Easiest task"
+PROJECT_2_NAME = "Easiest feature"
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -73,13 +73,15 @@ if RANDOM_SEED:
 
 
 def strategy_chooser(name):
+    """Returns a function that returns a pick method based on the current state"""
     if name == "Rotate reasonably": return rotate_strategy
     if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
+    if name == "Easiest feature": return lambda: pick_specific_from_easiest_app
     if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
     return default_strategy
 
 def rotate_strategy():
-    """ Returns a strategy function based on the day.  This is meant to be modified by user."""
+    """Returns a pick method based on the day"""
     # You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
         return pick_specific_from_most_common_by_feature

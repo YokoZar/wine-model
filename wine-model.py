@@ -438,7 +438,7 @@ day = 0
 
 timespent = time.clock()
 
-append_to_log("Time, % Work Items Completed, % Features Completed, % Happy Users \n")
+append_to_log("Strategy, Time, % Work Items Completed, % Features Completed, % Happy Users \n")
 chart_data = {}
 for project in projects:
     name = project.name

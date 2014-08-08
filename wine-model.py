@@ -42,7 +42,6 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
-number_of_bugs, number_of_apps, number_of_users = 1000, 250, 500
 
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
@@ -60,32 +59,30 @@ if RANDOM_SEED:
 ### Strategy -- meant to be modified by user
 ###
 
+# Available strategies:
+# TODO: rename "strategies" -> "pick_methods"    
+# pick_specific_from_all_bugs pick_random_from_all_bugs
+# pick_specific_from_specific_app pick_random_from_specific_app
+# pick_specific_from_random_app pick_random_from_random_app
+# pick_specific_from_specific_user pick_random_from_specific_user
+# pick_specific_from_random_user pick_random_from_random_user
+# pick_specific_from_easiest_app pick_random_from_easiest_app
+# pick_specific_from_easiest_user pick_random_from_easiest_user
+# pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
+# pick_specific_from_most_popular_app pick_random_from_most_popular_app
+# pick_random_from_easiest_bugs pick_specific_from_easiest_bugs
+
+
 def strategy_chooser(name):
     if name == "First strategy": return pick_strategy
     return default_strategy
 
-#TODO: rename "strategies" -> "pick_methods"    
-
 def pick_strategy():
     """ Returns a strategy function based on the day.  This is meant to be modified by user."""
-    return pick_specific_from_all_bugs
-    return random.choice(strategies)
-    # Available strategies:
-    # pick_specific_from_all_bugs pick_random_from_all_bugs
-    # pick_specific_from_specific_app pick_random_from_specific_app
-    # pick_specific_from_random_app pick_random_from_random_app
-    # pick_specific_from_specific_user pick_random_from_specific_user
-    # pick_specific_from_random_user pick_random_from_random_user
-    # pick_specific_from_easiest_app pick_random_from_easiest_app
-    # pick_specific_from_easiest_user pick_random_from_easiest_user
-    # pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
-    # pick_specific_from_most_popular_app pick_random_from_most_popular_app
-    # pick_random_from_easiest_bugs pick_specific_from_easiest_bugs
-
     # You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
         return pick_specific_from_most_common_by_feature
-    # "Realistic" model: rotate through different strategies
+    # "Realistic" model: rotate through different reasonable strategies
     if day %5 == 4: return pick_random_from_most_popular_app
     if day %5 == 3: return pick_random_from_random_user
     if day %5 == 2: return pick_random_from_easiest_app
@@ -93,7 +90,7 @@ def pick_strategy():
     if day %5 == 0: return pick_random_from_easiest_user
 
 def default_strategy():
-    return pick_specific_from_specific_app
+    return random.choice(strategies)
 
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
@@ -153,23 +150,23 @@ def pick_specific_from_all_bugs(project):
     return next(project.bugs_by_number)
 
 @strategy
-def pick_random_from_all_bugs():
+def pick_random_from_all_bugs(project):
     """Picks a random unsolved bug"""
-    return next(random_bugs)
+    return next(project.random_bugs)
 
 @strategy
-def pick_specific_from_random_app():
+def pick_specific_from_random_app(project):
     """Picks the smallest bug from a random app"""
-    for app in random_apps:
-        return min(apps[app])
-    return pick_specific_from_all_bugs()
+    for app in project.random_apps:
+        return min(project.apps[app])
+    return pick_specific_from_all_bugs(project)
 
 @strategy
-def pick_random_from_random_app():
+def pick_random_from_random_app(project):
     """Picks a random bug from a random app"""
-    for app in random_apps:
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_all_bugs()
+    for app in project.random_apps:
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_all_bugs(project)
 
 @strategy
 def pick_specific_from_specific_app(project):
@@ -178,92 +175,92 @@ def pick_specific_from_specific_app(project):
     return pick_specific_from_all_bugs(project) 
 
 @strategy
-def pick_random_from_specific_app():
-    for app in apps_by_number:
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_all_bugs() 
+def pick_random_from_specific_app(project):
+    for app in project.apps_by_number:
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_all_bugs(project) 
 
 @strategy
-def pick_specific_from_specific_user():
+def pick_specific_from_specific_user(project):
     """Picks the smallest bug from the smallest app from the smallest user"""
-    for user in users_by_number:
-        app = min(users[user])
-        return min(apps[app])
-    return pick_specific_from_specific_app()
+    for user in project.users_by_number:
+        app = min(project.users[user])
+        return min(project.apps[app])
+    return pick_specific_from_specific_app(project)
 
 @strategy
-def pick_random_from_specific_user():
+def pick_random_from_specific_user(project):
     """Picks a random bug from a random app from the smallest user"""
-    for user in users_by_number:
-        app = random.choice(tuple(users[user]))
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_random_app()
+    for user in project.users_by_number:
+        app = random.choice(tuple(project.users[user]))
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_random_app(project)
 
 @strategy
-def pick_specific_from_random_user():
+def pick_specific_from_random_user(project):
     """Picks the smallest bug in the smallest app from a random user"""
-    for user in random_users:
-        app = min(users[user])
-        return min(apps[app])
-    return pick_specific_from_random_app()
+    for user in project.random_users:
+        app = min(project.users[user])
+        return min(project.apps[app])
+    return pick_specific_from_random_app(project)
 
 @strategy
-def pick_random_from_random_user():
+def pick_random_from_random_user(project):
     """Picks a random bug from a random app from a random user"""
-    for user in random_users:
-        app = random.choice(tuple(users[user]))
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_random_app()
+    for user in project.random_users:
+        app = random.choice(tuple(project.users[user]))
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_random_app(project)
 
 @strategy
-def pick_specific_from_easiest_app():
-    for app in apps_by_easiest:
-        return min(apps[app])
-    return pick_specific_from_all_bugs() 
+def pick_specific_from_easiest_app(project):
+    for app in project.apps_by_easiest:
+        return min(project.apps[app])
+    return pick_specific_from_all_bugs(project) 
 
 @strategy
-def pick_random_from_easiest_app():
-    for app in apps_by_easiest:
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_all_bugs() 
+def pick_random_from_easiest_app(project):
+    for app in project.apps_by_easiest:
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_all_bugs(project)
 
 @strategy
-def pick_specific_from_easiest_user():
-    for user in users_by_easiest:
-        app = min(users[user])
-        return min(apps[app])
-    return pick_specific_from_easiest_app() 
+def pick_specific_from_easiest_user(project):
+    for user in project.users_by_easiest:
+        app = min(project.users[user])
+        return min(project.apps[app])
+    return pick_specific_from_easiest_app(project) 
 
 @strategy
-def pick_random_from_easiest_user():
-    for user in users_by_easiest:
-        app = random.choice(tuple(users[user]))
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_easiest_app()
+def pick_random_from_easiest_user(project):
+    for user in project.users_by_easiest:
+        app = random.choice(tuple(project.users[user]))
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_easiest_app(project)
 
 @strategy
-def pick_specific_from_most_common_by_feature():
+def pick_specific_from_most_common_by_feature(project):
     """Picks the bug that is the most common among all the unfinished features"""
-    return next(bugs_by_popularity_in_apps)
+    return next(project.bugs_by_popularity_in_apps)
 
 @strategy
-def pick_specific_from_most_popular_app():
+def pick_specific_from_most_popular_app(project):
     """Picks a specific bug from the most popular app"""
-    for app in (apps_by_popularity_in_users):
-        return list(apps[app])[0]
-    return pick_specific_from_all_bugs()
+    for app in (project.apps_by_popularity_in_users):
+        return list(project.apps[app])[0]
+    return pick_specific_from_all_bugs(project)
 
 @strategy
-def pick_random_from_most_popular_app():
+def pick_random_from_most_popular_app(project):
     """Picks a random bug from the most popular app"""
-    for app in (apps_by_popularity_in_users):
-        return random.choice(tuple(apps[app]))
-    return pick_random_from_all_bugs()
+    for app in (project.apps_by_popularity_in_users):
+        return random.choice(tuple(project.apps[app]))
+    return pick_random_from_all_bugs(project)
 
 @strategy
-def pick_random_from_easiest_bugs():
+def pick_random_from_easiest_bugs(project):
     easiest_difficulty = None
-    for bug, difficulty in bug_difficulty.items():
+    for bug, difficulty in project.bug_difficulty.items():
         if 0 < difficulty and (easiest_difficulty == None or difficulty < easiest_difficulty):
             candidates = {bug}
             easiest_difficulty = difficulty
@@ -272,9 +269,9 @@ def pick_random_from_easiest_bugs():
     return random.choice(tuple(candidates))
 
 @strategy
-def pick_specific_from_easiest_bugs():
+def pick_specific_from_easiest_bugs(project):
     easiest_difficulty = None
-    for bug, difficulty in bug_difficulty.items():
+    for bug, difficulty in project.bug_difficulty.items():
         if 0 < difficulty <= 1: # Doesn't get any easier
             return bug
         if difficulty > 1 and (easiest_difficulty is None or difficulty < easiest_difficulty):
@@ -296,16 +293,16 @@ class Project:
         self.get_strategy = strategy_chooser(name)
 
         # Class-wide generators to preserve state
-        self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator()
-        self.bugs_by_number = bugs_by_number_generator(self)
-        self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator()
+        self.bugs_by_number = bugs_by_number_generator(self.solved_bugs)
+        self.random_bugs = random_bugs_generator(self.solved_bugs)
         self.apps_by_number = goals_by_number_generator(self.apps)
-        self.apps_by_easiest = goals_by_easiest_generator(self.apps)
-        self.users_by_number = goals_by_number_generator(self.users)
-        self.users_by_easiest = goals_by_easiest_generator(self.users)
-        self.random_bugs = random_bugs_generator()
         self.random_apps = goals_by_random_generator(self.apps)
+        self.users_by_number = goals_by_number_generator(self.users)
         self.random_users = goals_by_random_generator(self.users)
+        self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator(self.apps, self.solved_bugs)
+        self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.apps)
+        self.apps_by_easiest = goals_by_easiest_generator(self.apps)
+        self.users_by_easiest = goals_by_easiest_generator(self.users)
         
         self.working_app_days = 0
         self.happy_user_days = 0
@@ -359,19 +356,19 @@ def goals_by_random_generator(goals: dict):
         else:
             yield goal
 
-def bugs_by_popularity_in_apps_generator():
+def bugs_by_popularity_in_apps_generator(apps, solved_bugs):
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-def apps_by_popularity_in_users_generator():
+def apps_by_popularity_in_users_generator(users, apps):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not DONE: yield app
 
-def bugs_by_number_generator(self):
+def bugs_by_number_generator(solved_bugs):
     for bug in range(number_of_bugs):
-        while bug not in self.solved_bugs: yield bug
+        while bug not in solved_bugs: yield bug
 
-def random_bugs_generator():
+def random_bugs_generator(solved_bugs):
     open_bugs = set(range(number_of_bugs))
     while True:
         open_bugs -= solved_bugs

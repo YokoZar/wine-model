@@ -26,12 +26,12 @@ CHART_APPS = "Working Features"
 CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
-CHART_TITLE = "Development Model"
+CHART_TITLE = "Comparing Two Development Models"
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-PROJECT_1_NAME = "First strategy"
-PROJECT_2_NAME = "Second strategy"
+PROJECT_1_NAME = "Most popular feature"
+PROJECT_2_NAME = "Easiest task"
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -59,8 +59,7 @@ if RANDOM_SEED:
 ### Strategy -- meant to be modified by user
 ###
 
-# Available strategies:
-# TODO: rename "strategies" -> "pick_methods"    
+# Available pick methods:
 # pick_specific_from_all_bugs pick_random_from_all_bugs
 # pick_specific_from_specific_app pick_random_from_specific_app
 # pick_specific_from_random_app pick_random_from_random_app
@@ -70,19 +69,21 @@ if RANDOM_SEED:
 # pick_specific_from_easiest_user pick_random_from_easiest_user
 # pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
 # pick_specific_from_most_popular_app pick_random_from_most_popular_app
-# pick_random_from_easiest_bugs pick_specific_from_easiest_bugs
+# pick_specific_from_easiest_bugs pick_random_from_easiest_bugs
 
 
 def strategy_chooser(name):
-    if name == "First strategy": return pick_strategy
+    if name == "Rotate reasonably": return rotate_strategy
+    if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
+    if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
     return default_strategy
 
-def pick_strategy():
+def rotate_strategy():
     """ Returns a strategy function based on the day.  This is meant to be modified by user."""
     # You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
         return pick_specific_from_most_common_by_feature
-    # "Realistic" model: rotate through different reasonable strategies
+    # "Realistic" model: rotate through different reasonable pick methods
     if day %5 == 4: return pick_random_from_most_popular_app
     if day %5 == 3: return pick_random_from_random_user
     if day %5 == 2: return pick_random_from_easiest_app
@@ -90,7 +91,7 @@ def pick_strategy():
     if day %5 == 0: return pick_random_from_easiest_user
 
 def default_strategy():
-    return random.choice(strategies)
+    return random.choice(pick_methods)
 
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
@@ -135,52 +136,51 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
     assert False
 
 ###
-### Strategies
+### Pick Methods
 ###
-# TODO: project as parameter for all strategies
 
-strategies = []
-def strategy(function):
-    strategies.append(function)
+pick_methods = []
+def pick_method(function):
+    pick_methods.append(function)
     return function
 
-@strategy
+@pick_method
 def pick_specific_from_all_bugs(project):
     """Picks the smallest bug number not in the solved_bugs list"""
     return next(project.bugs_by_number)
 
-@strategy
+@pick_method
 def pick_random_from_all_bugs(project):
     """Picks a random unsolved bug"""
     return next(project.random_bugs)
 
-@strategy
+@pick_method
 def pick_specific_from_random_app(project):
     """Picks the smallest bug from a random app"""
     for app in project.random_apps:
         return min(project.apps[app])
     return pick_specific_from_all_bugs(project)
 
-@strategy
+@pick_method
 def pick_random_from_random_app(project):
     """Picks a random bug from a random app"""
     for app in project.random_apps:
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_all_bugs(project)
 
-@strategy
+@pick_method
 def pick_specific_from_specific_app(project):
     for app in project.apps_by_number:
         return min(project.apps[app])
     return pick_specific_from_all_bugs(project) 
 
-@strategy
+@pick_method
 def pick_random_from_specific_app(project):
     for app in project.apps_by_number:
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_all_bugs(project) 
 
-@strategy
+@pick_method
 def pick_specific_from_specific_user(project):
     """Picks the smallest bug from the smallest app from the smallest user"""
     for user in project.users_by_number:
@@ -188,7 +188,7 @@ def pick_specific_from_specific_user(project):
         return min(project.apps[app])
     return pick_specific_from_specific_app(project)
 
-@strategy
+@pick_method
 def pick_random_from_specific_user(project):
     """Picks a random bug from a random app from the smallest user"""
     for user in project.users_by_number:
@@ -196,7 +196,7 @@ def pick_random_from_specific_user(project):
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_random_app(project)
 
-@strategy
+@pick_method
 def pick_specific_from_random_user(project):
     """Picks the smallest bug in the smallest app from a random user"""
     for user in project.random_users:
@@ -204,7 +204,7 @@ def pick_specific_from_random_user(project):
         return min(project.apps[app])
     return pick_specific_from_random_app(project)
 
-@strategy
+@pick_method
 def pick_random_from_random_user(project):
     """Picks a random bug from a random app from a random user"""
     for user in project.random_users:
@@ -212,52 +212,52 @@ def pick_random_from_random_user(project):
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_random_app(project)
 
-@strategy
+@pick_method
 def pick_specific_from_easiest_app(project):
     for app in project.apps_by_easiest:
         return min(project.apps[app])
     return pick_specific_from_all_bugs(project) 
 
-@strategy
+@pick_method
 def pick_random_from_easiest_app(project):
     for app in project.apps_by_easiest:
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_all_bugs(project)
 
-@strategy
+@pick_method
 def pick_specific_from_easiest_user(project):
     for user in project.users_by_easiest:
         app = min(project.users[user])
         return min(project.apps[app])
     return pick_specific_from_easiest_app(project) 
 
-@strategy
+@pick_method
 def pick_random_from_easiest_user(project):
     for user in project.users_by_easiest:
         app = random.choice(tuple(project.users[user]))
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_easiest_app(project)
 
-@strategy
+@pick_method
 def pick_specific_from_most_common_by_feature(project):
     """Picks the bug that is the most common among all the unfinished features"""
     return next(project.bugs_by_popularity_in_apps)
 
-@strategy
+@pick_method
 def pick_specific_from_most_popular_app(project):
     """Picks a specific bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
         return list(project.apps[app])[0]
     return pick_specific_from_all_bugs(project)
 
-@strategy
+@pick_method
 def pick_random_from_most_popular_app(project):
     """Picks a random bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
         return random.choice(tuple(project.apps[app]))
     return pick_random_from_all_bugs(project)
 
-@strategy
+@pick_method
 def pick_random_from_easiest_bugs(project):
     easiest_difficulty = None
     for bug, difficulty in project.bug_difficulty.items():
@@ -268,7 +268,7 @@ def pick_random_from_easiest_bugs(project):
             candidates.add(bug)
     return random.choice(tuple(candidates))
 
-@strategy
+@pick_method
 def pick_specific_from_easiest_bugs(project):
     easiest_difficulty = None
     for bug, difficulty in project.bug_difficulty.items():
@@ -280,7 +280,7 @@ def pick_specific_from_easiest_bugs(project):
     return easiest_bug
 
 ###
-### TODO: Class-based project WIP
+### Project class
 ###
 
 class Project:
@@ -323,7 +323,7 @@ class Project:
         return strat(self)
 
 ###
-### Generators, helper functions, and state variables for strategies
+### Generators and helper functions for pick methods
 ###
 
 def prioritize(goals: dict, total_tasks: int):
@@ -455,16 +455,16 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             # TODO: refactor above to maybe not reconstruct solved apps every time
 
         if not project.reported_first_app and project.working_apps >= 1:
-            print("First feature working at time", day)
+            print("First feature working for", project.name, "at time", day)
             project.reported_first_app = True
         if not project.reported_all_apps and project.working_apps == number_of_apps:
-            print("All features working at time", day)
+            print("All features working for", project.name, " at time", day)
             project.reported_all_apps = True
         if not project.reported_first_user and project.happy_users >= 1:
-            print("First user happy at time", day)
+            print("First user happy for", project.name, " at time", day)
             project.reported_first_user = True
         if not project.reported_all_users and project.happy_users == number_of_users:
-            print("All users happy at time", day)
+            print("All users happy for", project.name, " at time", day)
             project.reported_all_users = True
 
         if day >= total_time_to_solve*(show_at_percent_done/100):
@@ -502,7 +502,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
 
 
 # TODO: make optional command line output
-if DEBUG: print("Available strategies:", " ".join(f.__name__ for f in strategies))
+if DEBUG: print("Available pick methods:", " ".join(f.__name__ for f in pick_methods))
 
 print("Time spent running simulation:", (time.clock() - timespent))
 
@@ -514,6 +514,9 @@ for project in projects:
 print("Now making chart.")
 
 chart = pandas.DataFrame(chart_data)
+params = {'legend.fontsize': 10,
+          'legend.linewidth': 2}
+plt.rcParams.update(params)
 chart.plot()
 plt.title(CHART_TITLE)
 plt.ylabel(CHART_LABEL_Y)

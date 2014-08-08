@@ -61,3 +61,7 @@ Known shortcomings:
    for debate -- is Zipf's law or a Pareto distribution a better model for predicting which features
    will be important for users?  If you have an opinion on questions like that, please feel free to
    share and discuss it, and I will do my best to implement it for you.
+ * We don't model "dirty fixes", ie solutions to bugs that increase the time to perfection (perhaps 
+   by adding new bugs or more difficulty to existing bugs).  These might be thought of as ugly hacks
+   to the code that somehow manage to get an app working, which in Wine's case Alexandre opposes.
+

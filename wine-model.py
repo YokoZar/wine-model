@@ -293,7 +293,7 @@ class Project:
         self.bug_difficulty = bug_difficulty
         self.solved_bugs = set()
         self.name = name
-        self.get_strategy = strategy_chooser(name)
+        self.method_selector = strategy_chooser(name)
 
         # Class-wide generators to preserve state
         self.bugs_by_number = bugs_by_number_generator(self.solved_bugs)
@@ -322,8 +322,8 @@ class Project:
         return log
 
     def choose_bug(self):
-        strat = self.get_strategy()
-        return strat(self)
+        pick_method = self.method_selector()
+        return pick_method(self)
 
 ###
 ### Generators and helper functions for pick methods

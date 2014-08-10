@@ -359,19 +359,19 @@ def goals_by_random_generator(goals: dict):
         else:
             yield goal
 
-def bugs_by_popularity_in_apps_generator(apps, solved_bugs):
+def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-def apps_by_popularity_in_users_generator(users, apps):
+def apps_by_popularity_in_users_generator(users: dict, apps: dict):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not DONE: yield app
 
-def bugs_by_number_generator(solved_bugs):
+def bugs_by_number_generator(solved_bugs: set):
     for bug in range(number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-def random_bugs_generator(solved_bugs):
+def random_bugs_generator(solved_bugs: set):
     open_bugs = set(range(number_of_bugs))
     while True:
         open_bugs -= solved_bugs
@@ -381,7 +381,7 @@ def random_bugs_generator(solved_bugs):
 ### Helper functions for running simulation
 ###
 
-def append_to_log(entry):
+def append_to_log(entry: str):
     if enable_log:
         with open(LOGFILE, 'a') as logfile:
             logfile.write(entry)

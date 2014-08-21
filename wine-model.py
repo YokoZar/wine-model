@@ -322,8 +322,26 @@ class Project:
         return log
 
     def choose_bug(self):
-        pick_method = self.method_selector()
-        return pick_method(self)
+        """Finds a bug to work on and sets bug_in_progress to it"""
+        if self.bug_in_progress is not None and FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
+            return
+        else:
+            pick_method = self.method_selector()
+            self.bug_in_progress = pick_method(self)
+            assert self.bug_in_progress not in self.solved_bugs
+
+    def work_bug(self):
+        """Works on the bug_in_progress"""
+        self.working_app_days += self.working_apps
+        self.happy_user_days += self.happy_users
+
+        self.bug_difficulty[self.bug_in_progress] -= 1
+        if DEBUG: print("worked bug:", self.bug_in_progress)
+        if self.bug_difficulty[self.bug_in_progress] <= 0:
+            self.solved_bugs.add(self.bug_in_progress)
+            if DEBUG: print("solved bug:", self.bug_in_progress)
+            self.bug_in_progress = None
+
 
 ###
 ### Generators and helper functions for pick methods
@@ -479,24 +497,11 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         chart_data[project.name + ": " + CHART_APPS].append(project.working_apps*100/number_of_apps)
         chart_data[project.name + ": " + CHART_USERS].append(project.happy_users*100/number_of_users)
 
-        if project.bug_in_progress is None or not FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
-            project.bug_in_progress = project.choose_bug()
-            assert project.bug_in_progress not in project.solved_bugs
-
-        # TODO: convert to class method
-        project.working_app_days += project.working_apps
-        project.happy_user_days += project.happy_users
-
-        project.bug_difficulty[project.bug_in_progress] -= 1
-        if DEBUG: print("worked bug:", project.bug_in_progress)
-        if project.bug_difficulty[project.bug_in_progress] <= 0:
-            project.solved_bugs.add(project.bug_in_progress)
-            if DEBUG: print("solved bug:", project.bug_in_progress)
-            project.bug_in_progress = None
+        project.choose_bug()
+        project.work_bug()
 
         if len(project.solved_bugs) == number_of_bugs:
             print("100% complete at time: ", day + 1)
-            #append_to_log("%f, 1.0, 1.0, 1.0 \n" % (float(day)) )
             append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
             bugs_remaining = False
 

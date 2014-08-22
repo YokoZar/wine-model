@@ -74,12 +74,17 @@ if RANDOM_SEED:
 
 def strategy_chooser(name):
     """Returns a function that returns a pick method based on the current state"""
+    if name.startswith("Test:"): return test_strategy(name.lstrip("Test:"))
     if name == "Rotate reasonably": return rotate_strategy
     if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
     if name == "Easiest feature": return lambda: pick_specific_from_easiest_app
     if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
     if name == "Satisfy arbitrary user": return lambda: pick_specific_from_specific_user
     return default_strategy
+
+def test_strategy(strat):
+    func = eval(strat)
+    return lambda: func
 
 def rotate_strategy():
     """Returns a pick method based on the day"""

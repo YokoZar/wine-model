@@ -308,10 +308,18 @@ class Project:
         self.users_by_easiest = goals_by_easiest_generator(self.users)
         
         self.working_app_days = 0
+        self.working_apps = 0
         self.happy_user_days = 0
+        self.happy_users = 0
         self.bug_in_progress = None
         self.reported_first_app, self.reported_first_user = False, False
         self.reported_all_apps, self.reported_all_users = False, False
+
+        # TODO: these should be imported instead of users + apps
+        self.apps_affected_by_bug = goals_requiring_tasks(apps, number_of_bugs)
+        self.app_bugs_remaining = {app: len(bugs) for app, bugs in apps.items()}
+        self.users_affected_by_app = goals_requiring_tasks(users, number_of_apps)
+        self.user_apps_remaining = {user: len(apps) for user, apps in users.items()}
 
     def make_log_item(self):
         log = str(self.name) + ", "
@@ -338,14 +346,38 @@ class Project:
         self.bug_difficulty[self.bug_in_progress] -= 1
         if DEBUG: print("worked bug:", self.bug_in_progress)
         if self.bug_difficulty[self.bug_in_progress] <= 0:
-            self.solved_bugs.add(self.bug_in_progress)
-            if DEBUG: print("solved bug:", self.bug_in_progress)
+            self.solve_bug(self.bug_in_progress)
             self.bug_in_progress = None
 
+    def solve_bug(self, bug):
+        self.solved_bugs.add(bug)
+        if DEBUG: print("solved bug:", bug)
+        for app in self.apps_affected_by_bug[bug]:
+            self.app_bugs_remaining[app] -= 1
+            if self.app_bugs_remaining[app] == 0:
+                self.solve_app(app)
+
+    def solve_app(self, app):
+        self.working_apps += 1
+        if DEBUG: print("solved app:", app)
+        for user in self.users_affected_by_app[app]:
+            self.user_apps_remaining[user] -= 1
+            if self.user_apps_remaining[user] == 0:
+                self.happy_users += 1
+                if DEBUG: print("happy user:", user)
+                
 
 ###
 ### Generators and helper functions for pick methods
 ###
+
+def goals_requiring_tasks(goals: dict, total_tasks: int):
+    """Traverses a goals:tasks dictionary and creates a task:goals-needing-that-task dictionary"""
+    di = {task: set() for task in range(total_tasks)}
+    for goal, tasks in goals.items():
+        for task in tasks:
+            di[task].add(goal)
+    return di
 
 def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
@@ -404,6 +436,7 @@ def append_to_log(entry: str):
         with open(LOGFILE, 'a') as logfile:
             logfile.write(entry)
 
+# TODO: this is the slowest part
 def check_done(goals: dict, solved_tasks: set) -> int:
     """Checks a dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
     solved = 0
@@ -469,9 +502,9 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
     for project in projects:
         # Check for newly working apps every day we solved a bug in the previous day
         if project.bug_in_progress is None:
-            project.working_apps = check_done(project.apps,project.solved_bugs)
+            assert project.working_apps == check_done(project.apps,project.solved_bugs)
             finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
-            project.happy_users = check_done(project.users,finished_apps)
+            assert project.happy_users == check_done(project.users,finished_apps)
             # TODO: refactor above to maybe not reconstruct finished apps every time
 
         if not project.reported_first_app and project.working_apps >= 1:

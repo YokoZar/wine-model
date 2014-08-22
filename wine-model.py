@@ -33,6 +33,8 @@ FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
+CHECKING_REQUIRED = True # TODO: refactor to eliminate this
+
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
 
@@ -105,7 +107,7 @@ def default_strategy():
 ###  You shouldn't need to modify anything below here to just run a simulation
 ### ----------------------------------------------------------------------------
 
-DONE = True
+DONE = set()
 
 ###
 ### App and User Setup
@@ -384,6 +386,7 @@ def goals_requiring_tasks(goals: dict, total_tasks: int):
             di[task].add(goal)
     return di
 
+# TODO: not safe with new fast method!
 def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
     count = {task:0 for task in range(total_tasks)}
@@ -393,10 +396,12 @@ def prioritize(goals: dict, total_tasks: int):
                 count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
 
+# TODO: not safe with new fast method!
 def goals_by_number_generator(goals: dict):
     for goal in goals:
         while goals[goal] is not DONE: yield goal
 
+# TODO: not safe with new fast method!
 def goals_by_easiest_generator(goals: dict):
     """Generator to yield goals based on which has the fewest tasks remaining"""
     goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
@@ -404,6 +409,7 @@ def goals_by_easiest_generator(goals: dict):
         yield min(goalsizes, key=itemgetter(1))[0]
         goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
 
+# TODO: not safe with new fast method!
 def goals_by_random_generator(goals: dict):
     """Generator to yield unsolved goals at random"""
     unfinished_goals = set(goals)
@@ -414,10 +420,12 @@ def goals_by_random_generator(goals: dict):
         else:
             yield goal
 
+# TODO: not safe with new fast method!
 def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
+# TODO: not safe with new fast method!
 def apps_by_popularity_in_users_generator(users: dict, apps: dict):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not DONE: yield app
@@ -506,11 +514,11 @@ bugs_remaining = True
 while(bugs_remaining): # TODO: just use the inner for loop to cycle over projects
     for project in projects:
         # Check for newly working apps every day we solved a bug in the previous day
-        if project.bug_in_progress is None:
+        if project.bug_in_progress is None and CHECKING_REQUIRED:
             assert project.working_apps == check_done(project.apps,project.solved_bugs)
             finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
             assert project.happy_users == check_done(project.users,finished_apps)
-            # TODO: refactor above to maybe not reconstruct finished apps every time
+            # TODO: remove the above checks entirely; refactor methods that parse them
 
         if not project.reported_first_app and project.working_apps >= 1:
             print("First feature working for", project.name, "at time", day)

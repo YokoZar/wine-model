@@ -31,6 +31,7 @@ CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
+#PROJECT_NAMES = ["Test:pick_specific_from_easiest_app", "Test:pick_random_from_easiest_app"]
 PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
 CHECKING_REQUIRED = True # TODO: refactor to eliminate this
@@ -224,14 +225,20 @@ def pick_random_from_random_user(project):
 
 @pick_method
 def pick_specific_from_easiest_app(project):
-    for app in project.apps_by_easiest:
-        return min(project.apps[app])
+    """Picks the smallest bug from the smallest app with the fewest bugs remaining"""
+    easy_apps = project.easiest_apps()
+    if easy_apps:
+        app = min(easy_apps)
+        return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project) 
 
 @pick_method
 def pick_random_from_easiest_app(project):
-    for app in project.apps_by_easiest:
-        return random.choice(tuple(project.apps[app]))
+    """Picks a random bug from a random app with the fewest bugs remaining"""
+    easy_apps = project.easiest_apps()
+    if easy_apps:
+        app = random.choice(easy_apps)
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
 @pick_method
@@ -311,7 +318,6 @@ class Project:
         self.random_users = goals_by_random_generator(self.users)
         self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator(self.apps, self.solved_bugs)
         self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.apps)
-        self.apps_by_easiest = goals_by_easiest_generator(self.apps)
         self.users_by_easiest = goals_by_easiest_generator(self.users)
         
         self.working_app_days = 0
@@ -328,7 +334,12 @@ class Project:
         self.users_affected_by_app = goals_requiring_tasks(users, number_of_apps)
         self.user_apps_remaining = {user: len(apps) for user, apps in users.items()}
 
-    def make_log_item(self):
+    def easiest_apps(self) -> tuple:
+        unsolved = [(app, bugs) for app, bugs in self.app_bugs_remaining.items() if bugs > 0]
+        smallest_bug_count = min(unsolved, key=itemgetter(1), default=(0,0))[1]
+        return tuple(app for app, bugs in unsolved if bugs == smallest_bug_count)
+
+    def make_log_item(self) -> str:
         log = str(self.name) + ", "
         log += str(day) + ", "
         log += str(len(self.solved_bugs)/number_of_bugs) + ", "

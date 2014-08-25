@@ -243,16 +243,20 @@ def pick_random_from_easiest_app(project):
 
 @pick_method
 def pick_specific_from_easiest_user(project):
-    for user in project.users_by_easiest:
-        app = min(project.users[user])
-        return min(project.apps[app])
+    easy_users = project.easiest_users()
+    if easy_users:
+        user = min(easy_users)
+        app = min(project.users[user] - project.solved_apps)
+        return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_easiest_app(project) 
 
 @pick_method
 def pick_random_from_easiest_user(project):
-    for user in project.users_by_easiest:
-        app = random.choice(tuple(project.users[user]))
-        return random.choice(tuple(project.apps[app]))
+    easy_users = project.easiest_users()
+    if easy_users:
+        user = random.choice(easy_users)
+        app = random.choice(tuple(project.users[user] - project.solved_apps))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_easiest_app(project)
 
 @pick_method
@@ -306,6 +310,7 @@ class Project:
         self.apps = apps
         self.bug_difficulty = bug_difficulty
         self.solved_bugs = set()
+        self.solved_apps = set() # TODO: consider renaming to avoid confusion with working_apps 
         self.name = name
         self.method_selector = strategy_chooser(name)
 
@@ -318,10 +323,9 @@ class Project:
         self.random_users = goals_by_random_generator(self.users)
         self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator(self.apps, self.solved_bugs)
         self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.apps)
-        self.users_by_easiest = goals_by_easiest_generator(self.users)
         
         self.working_app_days = 0
-        self.working_apps = 0
+        self.working_apps = 0 # TODO: rename working_app_count
         self.happy_user_days = 0
         self.happy_users = 0
         self.bug_in_progress = None
@@ -338,6 +342,11 @@ class Project:
         unsolved = [(app, bugs) for app, bugs in self.app_bugs_remaining.items() if bugs > 0]
         smallest_bug_count = min(unsolved, key=itemgetter(1), default=(0,0))[1]
         return tuple(app for app, bugs in unsolved if bugs == smallest_bug_count)
+
+    def easiest_users(self) -> tuple:
+        unsolved = [(user, apps) for user, apps in self.user_apps_remaining.items() if apps > 0]
+        smallest_app_count = min(unsolved, key=itemgetter(1), default=(0,0))[1]
+        return tuple(user for user, apps in unsolved if apps == smallest_app_count)
 
     def make_log_item(self) -> str:
         log = str(self.name) + ", "
@@ -376,6 +385,7 @@ class Project:
                 self.solve_app(app)
 
     def solve_app(self, app):
+        self.solved_apps.add(app)
         self.working_apps += 1
         if DEBUG: print("solved app:", app)
         for user in self.users_affected_by_app[app]:
@@ -411,14 +421,6 @@ def prioritize(goals: dict, total_tasks: int):
 def goals_by_number_generator(goals: dict):
     for goal in goals:
         while goals[goal] is not DONE: yield goal
-
-# TODO: not safe with new fast method!
-def goals_by_easiest_generator(goals: dict):
-    """Generator to yield goals based on which has the fewest tasks remaining"""
-    goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
-    while goalsizes:
-        yield min(goalsizes, key=itemgetter(1))[0]
-        goalsizes = [(goal, len(tasks)) for goal, tasks in goals.items() if tasks is not DONE]
 
 # TODO: not safe with new fast method!
 def goals_by_random_generator(goals: dict):

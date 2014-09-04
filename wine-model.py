@@ -34,7 +34,7 @@ FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 #PROJECT_NAMES = ["Test:pick_specific_from_easiest_app", "Test:pick_random_from_easiest_app"]
 PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
-CHECKING_REQUIRED = True # TODO: refactor to eliminate this
+CHECKING_REQUIRED = True # TODO: refactor to eliminate this; all methods requiring check_items are slow
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -407,9 +407,9 @@ def goals_requiring_tasks(goals: dict, total_tasks: int):
             di[task].add(goal)
     return di
 
-# TODO: not safe with new fast method!
 def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
+    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     count = {task:0 for task in range(total_tasks)}
     for goal, tasks in goals.items():
         if tasks is not DONE:
@@ -417,14 +417,14 @@ def prioritize(goals: dict, total_tasks: int):
                 count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
 
-# TODO: not safe with new fast method!
 def goals_by_number_generator(goals: dict):
+    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     for goal in goals:
         while goals[goal] is not DONE: yield goal
 
-# TODO: not safe with new fast method!
 def goals_by_random_generator(goals: dict):
     """Generator to yield unsolved goals at random"""
+    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     unfinished_goals = set(goals)
     while unfinished_goals:
         goal = random.choice(tuple(unfinished_goals))
@@ -433,13 +433,13 @@ def goals_by_random_generator(goals: dict):
         else:
             yield goal
 
-# TODO: not safe with new fast method!
 def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
+    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-# TODO: not safe with new fast method!
 def apps_by_popularity_in_users_generator(users: dict, apps: dict):
+    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while apps[app] is not DONE: yield app
 

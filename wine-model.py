@@ -268,14 +268,14 @@ def pick_specific_from_most_common_by_feature(project):
 def pick_specific_from_most_popular_app(project):
     """Picks a specific bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
-        return list(project.apps[app])[0]
+        return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project)
 
 @pick_method
 def pick_random_from_most_popular_app(project):
     """Picks a random bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
-        return random.choice(tuple(project.apps[app]))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
 @pick_method
@@ -322,7 +322,7 @@ class Project:
         self.users_by_number = goals_by_number_generator(self.users)
         self.random_users = goals_by_random_generator(self.users)
         self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator(self.apps, self.solved_bugs)
-        self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.apps)
+        self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.solved_apps)
         
         self.working_app_days = 0
         self.working_apps = 0 # TODO: rename working_app_count
@@ -409,12 +409,10 @@ def goals_requiring_tasks(goals: dict, total_tasks: int):
 
 def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
-    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
-    count = {task:0 for task in range(total_tasks)}
-    for goal, tasks in goals.items():
-        if tasks is not DONE:
-            for task in tasks:
-                count[task] += 1
+    count = {task:0 for task in range(total_tasks)} # TODO: consider using collections.Counter?
+    for tasks in goals.values():
+        for task in tasks:
+            count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
 
 def goals_by_number_generator(goals: dict):
@@ -434,14 +432,12 @@ def goals_by_random_generator(goals: dict):
             yield goal
 
 def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
-    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-def apps_by_popularity_in_users_generator(users: dict, apps: dict):
-    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
+def apps_by_popularity_in_users_generator(users: dict, solved_apps: set):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
-        while apps[app] is not DONE: yield app
+        while app not in solved_apps: yield app
 
 def bugs_by_number_generator(solved_bugs: set):
     for bug in range(number_of_bugs):

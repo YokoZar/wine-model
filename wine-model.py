@@ -14,6 +14,7 @@ import time
 from math import sqrt
 from operator import itemgetter
 from functools import partial
+from collections import Counter
 import pandas
 import matplotlib.pyplot as plt
 
@@ -409,7 +410,7 @@ def goals_requiring_tasks(goals: dict, total_tasks: int):
 
 def prioritize(goals: dict, total_tasks: int):
     """Generator to yield tasks within a dict of goals based on their frequency"""
-    count = {task:0 for task in range(total_tasks)} # TODO: consider using collections.Counter?
+    count = Counter()
     for tasks in goals.values():
         for task in tasks:
             count[task] += 1

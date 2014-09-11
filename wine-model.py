@@ -32,7 +32,11 @@ CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-#PROJECT_NAMES = ["Test:pick_specific_from_easiest_app", "Test:pick_random_from_easiest_app"]
+#PROJECT_NAMES = ["pick_specific_from_all_bugs", "pick_random_from_all_bugs"]
+#PROJECT_NAMES += ["pick_specific_from_easiest_app", "pick_random_from_easiest_app"]
+#PROJECT_NAMES += ["pick_specific_from_easiest_user", "pick_random_from_easiest_user"]
+#PROJECT_NAMES += ["pick_specific_from_most_common_by_feature"]
+#PROJECT_NAMES += ["pick_specific_from_most_popular_app", "pick_random_from_most_popular_app"]
 PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
 CHECKING_REQUIRED = True # TODO: refactor to eliminate this; all methods requiring check_items are slow
@@ -76,19 +80,17 @@ if RANDOM_SEED:
 # pick_specific_from_easiest_bugs pick_random_from_easiest_bugs
 
 
-def strategy_chooser(name):
+def strategy_chooser(name: str) -> "function":
     """Returns a function that returns a pick method based on the current state"""
-    if name.startswith("Test:"): return test_strategy(name.lstrip("Test:"))
+    if name in set(f.__name__ for f in pick_methods): return lambda: eval(name)
+    # TODO: annotate functions with a display name for the chart rather than special casing them here
     if name == "Rotate reasonably": return rotate_strategy
     if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
     if name == "Easiest feature": return lambda: pick_specific_from_easiest_app
     if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
     if name == "Satisfy arbitrary user": return lambda: pick_specific_from_specific_user
-    return default_strategy
-
-def test_strategy(strat):
-    func = eval(strat)
-    return lambda: func
+    
+    raise ValueError("Unrecognized strategy: %s" % name)
 
 def rotate_strategy():
     """Returns a pick method based on the day"""
@@ -101,9 +103,6 @@ def rotate_strategy():
     if day %5 == 2: return pick_random_from_easiest_app
     if day %5 == 1: return pick_random_from_easiest_bugs
     if day %5 == 0: return pick_random_from_easiest_user
-
-def default_strategy():
-    return random.choice(pick_methods)
 
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation

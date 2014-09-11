@@ -109,34 +109,31 @@ def rotate_strategy():
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
 ### ----------------------------------------------------------------------------
-
-DONE = set()
-
 ###
 ### App and User Setup
 ###
 
-def probability_list_from_zipfs_law(size: int):
+def probability_list_from_zipfs_law(size: int) -> list:
     """Returns a list of floats from 0 to 1 based on a Zipfian distribution"""
     item_probability = [1.0/sqrt(x+1) for x in range(size)]
     random.shuffle(item_probability) # Prevent "smallest number" from implying "more likely"
     return item_probability
 
-def set_from_fixed_probabilities(probability: list):
+def set_from_fixed_probabilities(probability: list) -> frozenset:
     """Returns a set of numbers by randomly testing to include each one based on probability."""
-    return {item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance}
+    return frozenset(item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance)
 
-def frequency_list_from_pareto_distribution(size: int):
+def frequency_list_from_pareto_distribution(size: int) -> list:
     """Returns a set of relative probabilities based on a pareto distribution"""
     return [random.paretovariate(2.2) for x in range(size)]
 
-def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False):
+def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False) -> frozenset:
     """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
     twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
     """
     assert quantity <= len(frequency)
     if quantity == 0:
-        return set()
+        return frozenset()
     if not mutate_list:
         frequency = frequency.copy() 
     length_of_ruler = sum(frequency)
@@ -145,7 +142,7 @@ def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=Fa
         point_on_line -= length_of_segment
         if point_on_line < 0:
             frequency[index] = 0
-            return {index} | set_from_relative_frequencies(frequency, quantity - 1, True)
+            return frozenset({index} | set_from_relative_frequencies(frequency, quantity - 1, True))
     assert False
 
 ###

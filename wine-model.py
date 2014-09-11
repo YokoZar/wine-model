@@ -169,14 +169,14 @@ def pick_random_from_all_bugs(project):
 def pick_specific_from_random_app(project):
     """Picks the smallest bug from a random app"""
     for app in project.random_apps:
-        return min(project.apps[app])
+        return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project)
 
 @pick_method
 def pick_random_from_random_app(project):
     """Picks a random bug from a random app"""
     for app in project.random_apps:
-        return random.choice(tuple(project.apps[app]))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
 @pick_method
@@ -211,16 +211,16 @@ def pick_random_from_specific_user(project):
 def pick_specific_from_random_user(project):
     """Picks the smallest bug in the smallest app from a random user"""
     for user in project.random_users:
-        app = min(project.users[user])
-        return min(project.apps[app])
+        app = min(project.users[user] - project.solved_apps)
+        return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_random_app(project)
 
 @pick_method
 def pick_random_from_random_user(project):
     """Picks a random bug from a random app from a random user"""
     for user in project.random_users:
-        app = random.choice(tuple(project.users[user]))
-        return random.choice(tuple(project.apps[app]))
+        app = random.choice(tuple(project.users[user] - project.solved_apps))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_random_app(project)
 
 @pick_method
@@ -317,11 +317,11 @@ class Project:
 
         # Class-wide generators to preserve state
         self.bugs_by_number = goals_by_number_generator(number_of_bugs, self.solved_bugs)
-        self.random_bugs = random_bugs_generator(self.solved_bugs)
+        self.random_bugs = goals_by_random_generator(number_of_bugs, self.solved_bugs)
         self.apps_by_number = goals_by_number_generator(number_of_apps, self.solved_apps)
-        self.random_apps = goals_by_random_generator(self.apps)
+        self.random_apps = goals_by_random_generator(number_of_apps, self.solved_apps)
         self.users_by_number = goals_by_number_generator(number_of_users, self.solved_users)
-        self.random_users = goals_by_random_generator(self.users)
+        self.random_users = goals_by_random_generator(number_of_users, self.solved_users)
         self.bugs_by_popularity_in_apps = bugs_by_popularity_in_apps_generator(self.apps, self.solved_bugs)
         self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.solved_apps)
         
@@ -421,13 +421,12 @@ def goals_by_number_generator(number_of_goals: int, solved_goals: set):
     for goal in range(number_of_goals):
         while goal not in solved_goals: yield goal
 
-def goals_by_random_generator(goals: dict):
+def goals_by_random_generator(number_of_goals: int, solved_goals: set):
     """Generator to yield unsolved goals at random"""
-    assert CHECKING_REQUIRED # TODO: Refactor to not require the slow check_items
-    unfinished_goals = set(goals)
+    unfinished_goals = set(range(number_of_goals)) - solved_goals
     while unfinished_goals:
         goal = random.choice(tuple(unfinished_goals))
-        if goals[goal] is DONE:
+        if goal in solved_goals:
             unfinished_goals.remove(goal)
         else:
             yield goal
@@ -439,12 +438,6 @@ def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
 def apps_by_popularity_in_users_generator(users: dict, solved_apps: set):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while app not in solved_apps: yield app
-
-def random_bugs_generator(solved_bugs: set):
-    open_bugs = set(range(number_of_bugs))
-    while True:
-        open_bugs -= solved_bugs
-        yield random.choice(tuple(open_bugs))
 
 ###
 ### Helper functions for running simulation

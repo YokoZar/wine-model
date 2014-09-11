@@ -188,7 +188,7 @@ def pick_specific_from_specific_app(project):
 @pick_method
 def pick_random_from_specific_app(project):
     for app in project.apps_by_number:
-        return random.choice(tuple(project.apps[app]))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project) 
 
 @pick_method
@@ -203,8 +203,8 @@ def pick_specific_from_specific_user(project):
 def pick_random_from_specific_user(project):
     """Picks a random bug from a random app from the smallest user"""
     for user in project.users_by_number:
-        app = random.choice(tuple(project.users[user]))
-        return random.choice(tuple(project.apps[app]))
+        app = random.choice(tuple(project.users[user] - project.solved_apps))
+        return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_random_app(project)
 
 @pick_method

@@ -311,7 +311,7 @@ class Project:
         self.apps = apps
         self.bug_difficulty = bug_difficulty
         self.solved_bugs = set()
-        self.solved_apps = set() # TODO: consider renaming to avoid confusion with working_apps 
+        self.solved_apps = set()
         self.name = name
         self.method_selector = strategy_chooser(name)
 
@@ -326,9 +326,9 @@ class Project:
         self.apps_by_popularity_in_users = apps_by_popularity_in_users_generator(self.users, self.solved_apps)
         
         self.working_app_days = 0
-        self.working_apps = 0 # TODO: rename working_app_count
+        self.working_app_count = 0
         self.happy_user_days = 0
-        self.happy_users = 0
+        self.happy_user_count = 0
         self.bug_in_progress = None
         self.reported_first_app, self.reported_first_user = False, False
         self.reported_all_apps, self.reported_all_users = False, False
@@ -353,8 +353,8 @@ class Project:
         log = str(self.name) + ", "
         log += str(day) + ", "
         log += str(len(self.solved_bugs)/number_of_bugs) + ", "
-        log += str(self.working_apps/number_of_apps) + ", "
-        log += str(self.happy_users/number_of_users) + "\n"
+        log += str(self.working_app_count/number_of_apps) + ", "
+        log += str(self.happy_user_count/number_of_users) + "\n"
         return log
 
     def choose_bug(self):
@@ -368,8 +368,8 @@ class Project:
 
     def work_bug(self):
         """Works on the bug_in_progress"""
-        self.working_app_days += self.working_apps
-        self.happy_user_days += self.happy_users
+        self.working_app_days += self.working_app_count
+        self.happy_user_days += self.happy_user_count
 
         self.bug_difficulty[self.bug_in_progress] -= 1
         if DEBUG: print("worked bug:", self.bug_in_progress)
@@ -387,12 +387,12 @@ class Project:
 
     def solve_app(self, app):
         self.solved_apps.add(app)
-        self.working_apps += 1
+        self.working_app_count += 1
         if DEBUG: print("solved app:", app)
         for user in self.users_affected_by_app[app]:
             self.user_apps_remaining[user] -= 1
             if self.user_apps_remaining[user] == 0:
-                self.happy_users += 1
+                self.happy_user_count += 1
                 if DEBUG: print("happy user:", user)
                 
 
@@ -525,21 +525,21 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
     for project in projects:
         # Check for newly working apps every day we solved a bug in the previous day
         if project.bug_in_progress is None and CHECKING_REQUIRED:
-            assert project.working_apps == check_done(project.apps,project.solved_bugs)
+            assert project.working_app_count == check_done(project.apps,project.solved_bugs)
             finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
-            assert project.happy_users == check_done(project.users,finished_apps)
+            assert project.happy_user_count == check_done(project.users,finished_apps)
             # TODO: remove the above checks entirely; refactor methods that parse them
 
-        if not project.reported_first_app and project.working_apps >= 1:
+        if not project.reported_first_app and project.working_app_count >= 1:
             print("First feature working for", project.name, "at time", day)
             project.reported_first_app = True
-        if not project.reported_all_apps and project.working_apps == number_of_apps:
+        if not project.reported_all_apps and project.working_app_count == number_of_apps:
             print("All features working for", project.name, " at time", day)
             project.reported_all_apps = True
-        if not project.reported_first_user and project.happy_users >= 1:
+        if not project.reported_first_user and project.happy_user_count >= 1:
             print("First user happy for", project.name, " at time", day)
             project.reported_first_user = True
-        if not project.reported_all_users and project.happy_users == number_of_users:
+        if not project.reported_all_users and project.happy_user_count == number_of_users:
             print("All users happy for", project.name, " at time", day)
             project.reported_all_users = True
 
@@ -550,8 +550,8 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         append_to_log(project.make_log_item())
         if CHART_TASKS_COMPLETE:
             chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
-        chart_data[project.name + ": " + CHART_APPS].append(project.working_apps*100/number_of_apps)
-        chart_data[project.name + ": " + CHART_USERS].append(project.happy_users*100/number_of_users)
+        chart_data[project.name + ": " + CHART_APPS].append(project.working_app_count*100/number_of_apps)
+        chart_data[project.name + ": " + CHART_USERS].append(project.happy_user_count*100/number_of_users)
 
         project.choose_bug()
         project.work_bug()

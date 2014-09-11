@@ -282,7 +282,7 @@ def pick_random_from_most_popular_app(project):
 def pick_random_from_easiest_bugs(project):
     easiest_difficulty = None
     for bug, difficulty in project.bug_difficulty.items():
-        if 0 < difficulty and (easiest_difficulty == None or difficulty < easiest_difficulty):
+        if 0 < difficulty and (easiest_difficulty is None or difficulty < easiest_difficulty):
             candidates = {bug}
             easiest_difficulty = difficulty
         elif 0 < difficulty == easiest_difficulty:

@@ -29,17 +29,19 @@ CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Comparing Development Models"
 CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
-RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-#PROJECT_NAMES = ["pick_specific_from_all_bugs", "pick_random_from_all_bugs"]
-#PROJECT_NAMES += ["pick_specific_from_easiest_app", "pick_random_from_easiest_app"]
-#PROJECT_NAMES += ["pick_specific_from_easiest_user", "pick_random_from_easiest_user"]
-#PROJECT_NAMES += ["pick_specific_from_most_common_by_feature"]
-#PROJECT_NAMES += ["pick_specific_from_most_popular_app", "pick_random_from_most_popular_app"]
-PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
-
-CHECKING_REQUIRED = True # TODO: refactor to eliminate this; all methods requiring check_items are slow
+PROJECT_NAMES = ["pick_specific_from_all_bugs", "pick_random_from_all_bugs"]
+PROJECT_NAMES += ["pick_specific_from_specific_app", "pick_random_from_specific_app"]
+PROJECT_NAMES += ["pick_specific_from_random_app", "pick_random_from_random_app"]
+PROJECT_NAMES += ["pick_specific_from_specific_user", "pick_random_from_specific_user"]
+PROJECT_NAMES += ["pick_specific_from_random_user", "pick_random_from_random_user"]
+PROJECT_NAMES += ["pick_specific_from_easiest_app", "pick_random_from_easiest_app"]
+PROJECT_NAMES += ["pick_specific_from_easiest_user", "pick_random_from_easiest_user"]
+PROJECT_NAMES += ["pick_specific_from_most_common_by_feature"]
+PROJECT_NAMES += ["pick_specific_from_most_popular_app", "pick_random_from_most_popular_app"]
+PROJECT_NAMES += ["pick_specific_from_easiest_bugs", "pick_random_from_easiest_bugs"]
+#PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -448,20 +450,6 @@ def append_to_log(entry: str):
         with open(LOGFILE, 'a') as logfile:
             logfile.write(entry)
 
-# TODO: this is the slowest part
-def check_done(goals: dict, solved_tasks: set) -> int:
-    """Checks a dictionary (eg users, apps) for solved things (eg apps, bugs) and marks them"""
-    solved = 0
-    for goal, tasks in goals.items():
-        if tasks is not DONE:
-            remaining_tasks = tasks - solved_tasks
-            if remaining_tasks:
-                goals[goal] = remaining_tasks
-                continue
-            else:
-                goals[goal] = DONE
-        solved += 1
-    return solved
 
 def setup():
     """Creates apps and users and erases the log"""
@@ -512,13 +500,6 @@ bugs_remaining = True
 
 while(bugs_remaining): # TODO: just use the inner for loop to cycle over projects
     for project in projects:
-        # Check for newly working apps every day we solved a bug in the previous day
-        if project.bug_in_progress is None and CHECKING_REQUIRED:
-            assert project.working_app_count == check_done(project.apps,project.solved_bugs)
-            finished_apps = set(x for x in project.apps if project.apps[x] is DONE)
-            assert project.happy_user_count == check_done(project.users,finished_apps)
-            # TODO: remove the above checks entirely; refactor methods that parse them
-
         if not project.reported_first_app and project.working_app_count >= 1:
             print("First feature working for", project.name, "at time", day)
             project.reported_first_app = True

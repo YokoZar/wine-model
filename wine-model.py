@@ -334,9 +334,9 @@ class Project:
 
         # TODO: these should be imported instead of users + apps
         self.apps_affected_by_bug = goals_requiring_tasks(apps, number_of_bugs)
-        self.app_bugs_remaining = {app: len(bugs) for app, bugs in apps.items()}
+        self.app_bugs_remaining = {app_id: len(bugs) for app_id, bugs in enumerate(apps)} # TODO: make this a list
         self.users_affected_by_app = goals_requiring_tasks(users, number_of_apps)
-        self.user_apps_remaining = {user: len(apps) for user, apps in users.items()}
+        self.user_apps_remaining = {user_id: len(apps) for user_id, apps in enumerate(users)} # TODO: make this a list
 
     def easiest_apps(self) -> tuple:
         unsolved = [(app, bugs) for app, bugs in self.app_bugs_remaining.items() if bugs > 0]
@@ -400,18 +400,18 @@ class Project:
 ### Generators and helper functions for pick methods
 ###
 
-def goals_requiring_tasks(goals: dict, total_tasks: int):
-    """Traverses a goals:tasks dictionary and creates a task:goals-needing-that-task dictionary"""
-    di = {task: set() for task in range(total_tasks)}
-    for goal, tasks in goals.items():
+def goals_requiring_tasks(goals: tuple, total_tasks: int) -> dict: # TODO: make this return a list, refactor
+    """Traverses a goals:tasks tuple and creates a task:goals-needing-that-task dictionary"""
+    goals_by_tasks = {task: set() for task in range(total_tasks)} # TODO: frozenset?
+    for goal, tasks in enumerate(goals):
         for task in tasks:
-            di[task].add(goal)
-    return di
+            goals_by_tasks[task].add(goal)
+    return goals_by_tasks
 
-def prioritize(goals: dict, total_tasks: int):
-    """Generator to yield tasks within a dict of goals based on their frequency"""
+def prioritize(goals: tuple, total_tasks: int):
+    """Generator to yield tasks within a tuple of goals based on their frequency"""
     count = Counter()
-    for tasks in goals.values():
+    for tasks in goals:
         for task in tasks:
             count[task] += 1
     yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
@@ -430,11 +430,11 @@ def goals_by_random_generator(number_of_goals: int, solved_goals: set):
         else:
             yield goal
 
-def bugs_by_popularity_in_apps_generator(apps: dict, solved_bugs: set):
+def bugs_by_popularity_in_apps_generator(apps: tuple, solved_bugs: set):
     for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
         while bug not in solved_bugs: yield bug
 
-def apps_by_popularity_in_users_generator(users: dict, solved_apps: set):
+def apps_by_popularity_in_users_generator(users: tuple, solved_apps: set):
     for app in prioritize(goals=users, total_tasks=number_of_apps):
         while app not in solved_apps: yield app
 
@@ -462,18 +462,18 @@ def setup():
     print("Work items generated, with", total_time_to_solve, "total time to finish every work item.")
 
     bug_probability = bug_probability_function()
-    apps = {app:set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps)}
-    average_bugs_per_app = sum([len(apps[x]) for x in apps]) / number_of_apps
+    apps = tuple(set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps))
+    average_bugs_per_app = sum(len(app) for app in apps) / number_of_apps
     print("Features generated, averaging", average_bugs_per_app, "items per feature.")
 
     app_frequency = app_frequency_function()
-    users = {user:set_from_relative_frequencies(app_frequency, apps_per_user_function())
-             for user in range(number_of_users)}
-    average_apps_per_user = sum([len(users[x]) for x in users]) / number_of_users
+    users = tuple(set_from_relative_frequencies(app_frequency, apps_per_user_function())
+                  for user in range(number_of_users))
+    average_apps_per_user = sum(len(user) for user in users) / number_of_users
     print("Users generated, averaging", average_apps_per_user, "features per user.")
 
     assert PROJECT_NAMES
-    projects = [Project(users.copy(), apps.copy(), bug_difficulty.copy(), name) for name in PROJECT_NAMES]
+    projects = [Project(users, apps, bug_difficulty.copy(), name) for name in PROJECT_NAMES]
 
 ###
 ### Simulation begins here

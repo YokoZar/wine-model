@@ -443,9 +443,9 @@ def apps_by_popularity_in_users_generator(users: dict, solved_apps: set):
 ###
 
 def append_to_log(entry: str):
-    if enable_log:
-        with open(LOGFILE, 'a') as logfile:
-            logfile.write(entry)
+    assert enable_log
+    with open(LOGFILE, 'a') as logfile:
+        logfile.write(entry)
 
 
 def setup():
@@ -486,7 +486,7 @@ day = 0
 
 timespent = time.clock()
 
-append_to_log("Strategy, Time, % Work Items Completed, % Features Completed, % Happy Users \n")
+if enable_log: append_to_log("Strategy, Time, % Work Items Completed, % Features Completed, % Happy Users \n")
 chart_data = {}
 for project in projects:
     name = project.name
@@ -514,7 +514,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             print("%i%% complete at time: " % (show_at_percent_done), day)
             show_at_percent_done += 10
 
-        append_to_log(project.make_log_item())
+        if enable_log: append_to_log(project.make_log_item())
         if CHART_TASKS_COMPLETE:
             chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
         chart_data[project.name + ": " + CHART_APPS].append(project.working_app_count*100/number_of_apps)
@@ -525,7 +525,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
 
         if len(project.solved_bugs) == number_of_bugs:
             print("100% complete at time: ", day + 1)
-            append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
+            if enable_log: append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
             bugs_remaining = False
 
     day += 1 

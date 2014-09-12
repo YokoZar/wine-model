@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 
 DEBUG = False
 LOGFILE = 'wine-model-results.csv'
-ENABLE_LOG_DEFAULT = True
 CHARTFILE = 'wine-model-results.svg' # You can rename to .png for a png file
 CHART_BUGS = "Tasks Complete"
 CHART_APPS = "Working Features"
@@ -61,7 +60,7 @@ def setup_functions():
     app_frequency_function = partial(frequency_list_from_pareto_distribution, number_of_apps)
     apps_per_user_function = partial(random.randint, MIN_APPS_PER_USER, MAX_APPS_PER_USER)
 
-enable_log = ENABLE_LOG_DEFAULT
+enable_log = False
 if RANDOM_SEED: 
     random.seed(a=RANDOM_SEED)
 

@@ -299,11 +299,58 @@ def pick_specific_from_easiest_bugs(project):
     return easiest_bug
 
 ###
+### Generators and helper functions for pick methods
+###
+
+def goals_requiring_tasks(goals: tuple, total_tasks: int) -> dict: # TODO: make this return a list, refactor
+    """Traverses a goals:tasks tuple and creates a task:goals-needing-that-task dictionary"""
+    goals_by_tasks = {task: set() for task in range(total_tasks)} # TODO: frozenset?
+    for goal, tasks in enumerate(goals):
+        for task in tasks:
+            goals_by_tasks[task].add(goal)
+    return goals_by_tasks
+
+def prioritize(goals: tuple, total_tasks: int):
+    """Generator to yield tasks within a tuple of goals based on their frequency"""
+    count = Counter()
+    for tasks in goals:
+        for task in tasks:
+            count[task] += 1
+    yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
+
+def goals_by_number_generator(number_of_goals: int, solved_goals: set):
+    for goal in range(number_of_goals):
+        while goal not in solved_goals: yield goal
+
+def goals_by_random_generator(number_of_goals: int, solved_goals: set):
+    """Generator to yield unsolved goals at random"""
+    unfinished_goals = set(range(number_of_goals)) - solved_goals
+    while unfinished_goals:
+        goal = random.choice(tuple(unfinished_goals))
+        if goal in solved_goals:
+            unfinished_goals.remove(goal)
+        else:
+            yield goal
+
+def bugs_by_popularity_in_apps_generator(apps: tuple, solved_bugs: set):
+    for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
+        while bug not in solved_bugs: yield bug
+
+def apps_by_popularity_in_users_generator(users: tuple, solved_apps: set):
+    for app in prioritize(goals=users, total_tasks=number_of_apps):
+        while app not in solved_apps: yield app
+
+###
 ### Project class
 ###
 
 class Project:
     setup_functions()
+    global total_time_to_solve
+
+    initial_bug_difficulty = {bug: bug_difficulty_function() for bug in range(number_of_bugs)}
+    total_time_to_solve = sum(initial_bug_difficulty.values())
+    print("Work items generated, with", total_time_to_solve, "total time to finish every work item.")
 
     apps = tuple(set_from_fixed_probabilities(bug_probability_function()) for app in range(number_of_apps))
     average_bugs_per_app = sum(len(app) for app in apps) / number_of_apps
@@ -314,8 +361,15 @@ class Project:
     average_apps_per_user = sum(len(user) for user in users) / number_of_users
     print("Users generated, averaging", average_apps_per_user, "features per user.")
 
-    def __init__(self, bug_difficulty, name):
-        self.bug_difficulty = bug_difficulty
+    apps_affected_by_bug = goals_requiring_tasks(apps, number_of_bugs)
+    users_affected_by_app = goals_requiring_tasks(users, number_of_apps)
+
+    # TODO: make these lists
+    initial_app_bugs_remaining = {app_id: len(bugs) for app_id, bugs in enumerate(apps)} 
+    initial_user_apps_remaining = {user_id: len(apps) for user_id, apps in enumerate(users)}
+
+    def __init__(self, name):
+        self.bug_difficulty = self.initial_bug_difficulty.copy()
         self.solved_bugs = set()
         self.solved_apps = set()
         self.solved_users = set()
@@ -340,12 +394,9 @@ class Project:
         self.reported_first_app, self.reported_first_user = False, False
         self.reported_all_apps, self.reported_all_users = False, False
 
-        # TODO: these should be class variables not instance variables
-        self.apps_affected_by_bug = goals_requiring_tasks(self.apps, number_of_bugs)
-        self.users_affected_by_app = goals_requiring_tasks(self.users, number_of_apps)
         # TODO: these should be generated only once and copied on class instantiation
-        self.app_bugs_remaining = {app_id: len(bugs) for app_id, bugs in enumerate(self.apps)} # TODO: make this a list
-        self.user_apps_remaining = {user_id: len(apps) for user_id, apps in enumerate(self.users)} # TODO: make this a list
+        self.app_bugs_remaining = self.initial_app_bugs_remaining.copy()
+        self.user_apps_remaining = self.initial_user_apps_remaining.copy()
 
     def easiest_apps(self) -> tuple:
         unsolved = [(app, bugs) for app, bugs in self.app_bugs_remaining.items() if bugs > 0]
@@ -406,48 +457,6 @@ class Project:
                 
 
 ###
-### Generators and helper functions for pick methods
-###
-
-def goals_requiring_tasks(goals: tuple, total_tasks: int) -> dict: # TODO: make this return a list, refactor
-    """Traverses a goals:tasks tuple and creates a task:goals-needing-that-task dictionary"""
-    goals_by_tasks = {task: set() for task in range(total_tasks)} # TODO: frozenset?
-    for goal, tasks in enumerate(goals):
-        for task in tasks:
-            goals_by_tasks[task].add(goal)
-    return goals_by_tasks
-
-def prioritize(goals: tuple, total_tasks: int):
-    """Generator to yield tasks within a tuple of goals based on their frequency"""
-    count = Counter()
-    for tasks in goals:
-        for task in tasks:
-            count[task] += 1
-    yield from (task for (task, frequency) in sorted(count.items(), key=itemgetter(1), reverse=True))
-
-def goals_by_number_generator(number_of_goals: int, solved_goals: set):
-    for goal in range(number_of_goals):
-        while goal not in solved_goals: yield goal
-
-def goals_by_random_generator(number_of_goals: int, solved_goals: set):
-    """Generator to yield unsolved goals at random"""
-    unfinished_goals = set(range(number_of_goals)) - solved_goals
-    while unfinished_goals:
-        goal = random.choice(tuple(unfinished_goals))
-        if goal in solved_goals:
-            unfinished_goals.remove(goal)
-        else:
-            yield goal
-
-def bugs_by_popularity_in_apps_generator(apps: tuple, solved_bugs: set):
-    for bug in prioritize(goals=apps, total_tasks=number_of_bugs):
-        while bug not in solved_bugs: yield bug
-
-def apps_by_popularity_in_users_generator(users: tuple, solved_apps: set):
-    for app in prioritize(goals=users, total_tasks=number_of_apps):
-        while app not in solved_apps: yield app
-
-###
 ### Helper functions for running simulation
 ###
 
@@ -459,17 +468,12 @@ def append_to_log(entry: str):
 def setup():
     """Creates apps and users and erases the log"""
     global projects
-    global total_time_to_solve
+
     if enable_log: # Erase logfile
         with open(LOGFILE, 'w'): pass
 
-    # TODO: do this on class definition
-    bug_difficulty = {bug: bug_difficulty_function() for bug in range(number_of_bugs)}
-    total_time_to_solve = sum(bug_difficulty.values())
-    print("Work items generated, with", total_time_to_solve, "total time to finish every work item.")
-
     assert PROJECT_NAMES
-    projects = [Project(bug_difficulty.copy(), name) for name in PROJECT_NAMES]
+    projects = [Project(name) for name in PROJECT_NAMES]
 
 ###
 ### Simulation begins here

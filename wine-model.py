@@ -303,9 +303,18 @@ def pick_specific_from_easiest_bugs(project):
 ###
 
 class Project:
-    def __init__(self, users, apps, bug_difficulty, name):
-        self.users = users
-        self.apps = apps
+    setup_functions()
+
+    apps = tuple(set_from_fixed_probabilities(bug_probability_function()) for app in range(number_of_apps))
+    average_bugs_per_app = sum(len(app) for app in apps) / number_of_apps
+    print("Features generated, averaging", average_bugs_per_app, "items per feature.")
+
+    users = tuple(set_from_relative_frequencies(app_frequency_function(), apps_per_user_function())
+                  for user in range(number_of_users))
+    average_apps_per_user = sum(len(user) for user in users) / number_of_users
+    print("Users generated, averaging", average_apps_per_user, "features per user.")
+
+    def __init__(self, bug_difficulty, name):
         self.bug_difficulty = bug_difficulty
         self.solved_bugs = set()
         self.solved_apps = set()
@@ -331,11 +340,12 @@ class Project:
         self.reported_first_app, self.reported_first_user = False, False
         self.reported_all_apps, self.reported_all_users = False, False
 
-        # TODO: these should be imported instead of users + apps
-        self.apps_affected_by_bug = goals_requiring_tasks(apps, number_of_bugs)
-        self.app_bugs_remaining = {app_id: len(bugs) for app_id, bugs in enumerate(apps)} # TODO: make this a list
-        self.users_affected_by_app = goals_requiring_tasks(users, number_of_apps)
-        self.user_apps_remaining = {user_id: len(apps) for user_id, apps in enumerate(users)} # TODO: make this a list
+        # TODO: these should be class variables not instance variables
+        self.apps_affected_by_bug = goals_requiring_tasks(self.apps, number_of_bugs)
+        self.users_affected_by_app = goals_requiring_tasks(self.users, number_of_apps)
+        # TODO: these should be generated only once and copied on class instantiation
+        self.app_bugs_remaining = {app_id: len(bugs) for app_id, bugs in enumerate(self.apps)} # TODO: make this a list
+        self.user_apps_remaining = {user_id: len(apps) for user_id, apps in enumerate(self.users)} # TODO: make this a list
 
     def easiest_apps(self) -> tuple:
         unsolved = [(app, bugs) for app, bugs in self.app_bugs_remaining.items() if bugs > 0]
@@ -446,33 +456,20 @@ def append_to_log(entry: str):
     with open(LOGFILE, 'a') as logfile:
         logfile.write(entry)
 
-
 def setup():
     """Creates apps and users and erases the log"""
     global projects
     global total_time_to_solve
-    if enable_log:
+    if enable_log: # Erase logfile
         with open(LOGFILE, 'w'): pass
 
-    setup_functions()
-
+    # TODO: do this on class definition
     bug_difficulty = {bug: bug_difficulty_function() for bug in range(number_of_bugs)}
     total_time_to_solve = sum(bug_difficulty.values())
     print("Work items generated, with", total_time_to_solve, "total time to finish every work item.")
 
-    bug_probability = bug_probability_function()
-    apps = tuple(set_from_fixed_probabilities(bug_probability) for app in range(number_of_apps))
-    average_bugs_per_app = sum(len(app) for app in apps) / number_of_apps
-    print("Features generated, averaging", average_bugs_per_app, "items per feature.")
-
-    app_frequency = app_frequency_function()
-    users = tuple(set_from_relative_frequencies(app_frequency, apps_per_user_function())
-                  for user in range(number_of_users))
-    average_apps_per_user = sum(len(user) for user in users) / number_of_users
-    print("Users generated, averaging", average_apps_per_user, "features per user.")
-
     assert PROJECT_NAMES
-    projects = [Project(users, apps, bug_difficulty.copy(), name) for name in PROJECT_NAMES]
+    projects = [Project(bug_difficulty.copy(), name) for name in PROJECT_NAMES]
 
 ###
 ### Simulation begins here

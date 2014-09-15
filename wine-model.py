@@ -31,17 +31,8 @@ CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-PROJECT_NAMES = ["pick_specific_from_all_bugs", "pick_random_from_all_bugs"]
-PROJECT_NAMES += ["pick_specific_from_specific_app", "pick_random_from_specific_app"]
-PROJECT_NAMES += ["pick_specific_from_random_app", "pick_random_from_random_app"]
-PROJECT_NAMES += ["pick_specific_from_specific_user", "pick_random_from_specific_user"]
-PROJECT_NAMES += ["pick_specific_from_random_user", "pick_random_from_random_user"]
-PROJECT_NAMES += ["pick_specific_from_easiest_app", "pick_random_from_easiest_app"]
-PROJECT_NAMES += ["pick_specific_from_easiest_user", "pick_random_from_easiest_user"]
-PROJECT_NAMES += ["pick_specific_from_most_common_by_feature"]
-PROJECT_NAMES += ["pick_specific_from_most_popular_app", "pick_random_from_most_popular_app"]
-PROJECT_NAMES += ["pick_specific_from_easiest_bugs", "pick_random_from_easiest_bugs"]
-#PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user"]
+# Adjust these to different names based on the strategy desired (see pick methods below)
+PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user first", "Rotate reasonably"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -53,6 +44,7 @@ MAX_APPS_PER_USER = 10
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
 
+# TODO: document!
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
     global app_frequency_function, apps_per_user_function
@@ -69,32 +61,16 @@ if RANDOM_SEED:
 ### Strategy -- meant to be modified by user
 ###
 
-# Available pick methods:
-# pick_specific_from_all_bugs pick_random_from_all_bugs
-# pick_specific_from_specific_app pick_random_from_specific_app
-# pick_specific_from_random_app pick_random_from_random_app
-# pick_specific_from_specific_user pick_random_from_specific_user
-# pick_specific_from_random_user pick_random_from_random_user
-# pick_specific_from_easiest_app pick_random_from_easiest_app
-# pick_specific_from_easiest_user pick_random_from_easiest_user
-# pick_specific_from_most_common_by_feature #TODO: pick_random_from_most_common_by_feature
-# pick_specific_from_most_popular_app pick_random_from_most_popular_app
-# pick_specific_from_easiest_bugs pick_random_from_easiest_bugs
-
-
 def strategy_chooser(name: str) -> "function":
     """Returns a function that returns a pick method based on the current state"""
-    if name in set(f.__name__ for f in pick_methods): return lambda: eval(name)
-    # TODO: annotate functions with a display name for the chart rather than special casing them here
+    x = pick_methods.get(name)
+    if x:
+        return lambda: x
     if name == "Rotate reasonably": return rotate_strategy
-    if name == "Easiest task": return lambda: pick_specific_from_easiest_bugs
-    if name == "Easiest feature": return lambda: pick_specific_from_easiest_app
-    if name == "Most popular feature": return lambda: pick_specific_from_most_popular_app
-    if name == "Satisfy arbitrary user": return lambda: pick_specific_from_specific_user
     
     raise ValueError("Unrecognized strategy: %s" % name)
 
-def rotate_strategy():
+def rotate_strategy(): # TODO: convert this into a simple pick_method
     """Returns a pick method based on the day"""
     # You can select the strategy based on the day
     if day < 300: # eg do nothing but this strategy for the first 300 days
@@ -110,87 +86,53 @@ def rotate_strategy():
 ###  You shouldn't need to modify anything below here to just run a simulation
 ### ----------------------------------------------------------------------------
 ###
-### App and User Setup
-###
-
-def probability_list_from_zipfs_law(size: int) -> list:
-    """Returns a list of floats from 0 to 1 based on a Zipfian distribution"""
-    item_probability = [1.0/sqrt(x+1) for x in range(size)]
-    random.shuffle(item_probability) # Prevent "smallest number" from implying "more likely"
-    return item_probability
-
-def set_from_fixed_probabilities(probability: list) -> frozenset:
-    """Returns a set of numbers by randomly testing to include each one based on probability."""
-    return frozenset(item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance)
-
-def frequency_list_from_pareto_distribution(size: int) -> list:
-    """Returns a set of relative probabilities based on a pareto distribution"""
-    return [random.paretovariate(2.2) for x in range(size)]
-
-def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False) -> frozenset:
-    """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
-    twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
-    """
-    assert quantity <= len(frequency)
-    if quantity == 0:
-        return frozenset()
-    if not mutate_list:
-        frequency = frequency.copy() 
-    length_of_ruler = sum(frequency)
-    point_on_line = random.uniform(0,length_of_ruler)
-    for (index, length_of_segment) in enumerate(frequency):
-        point_on_line -= length_of_segment
-        if point_on_line < 0:
-            frequency[index] = 0
-            return frozenset({index} | set_from_relative_frequencies(frequency, quantity - 1, True))
-    assert False
-
-###
 ### Pick Methods
 ###
 
-pick_methods = []
-def pick_method(function):
-    pick_methods.append(function)
-    return function
+pick_methods = {}
+def pick_method(name):
+    def run_pick_method(function):
+        pick_methods[name] = function
+        return function
+    return run_pick_method
 
-@pick_method
+@pick_method("First item on list")
 def pick_specific_from_all_bugs(project):
     """Picks the smallest bug number not in the solved_bugs list"""
     return next(project.bugs_by_number)
 
-@pick_method
+@pick_method("Random item")
 def pick_random_from_all_bugs(project):
     """Picks a random unsolved bug"""
     return next(project.random_bugs)
 
-@pick_method
+@pick_method("Random feature")
 def pick_specific_from_random_app(project):
     """Picks the smallest bug from a random app"""
     for app in project.random_apps:
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project)
 
-@pick_method
+@pick_method("Random item in random feature")
 def pick_random_from_random_app(project):
     """Picks a random bug from a random app"""
     for app in project.random_apps:
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
-@pick_method
+@pick_method("First feature on list")
 def pick_specific_from_specific_app(project):
     for app in project.apps_by_number:
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project) 
 
-@pick_method
+@pick_method("Random item in first feature on list")
 def pick_random_from_specific_app(project):
     for app in project.apps_by_number:
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project) 
 
-@pick_method
+@pick_method("First user on list")
 def pick_specific_from_specific_user(project):
     """Picks the smallest bug from the smallest app from the smallest user"""
     for user in project.users_by_number:
@@ -198,7 +140,7 @@ def pick_specific_from_specific_user(project):
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_specific_app(project)
 
-@pick_method
+@pick_method("Random feature from first user on list")
 def pick_random_from_specific_user(project):
     """Picks a random bug from a random app from the smallest user"""
     for user in project.users_by_number:
@@ -206,7 +148,7 @@ def pick_random_from_specific_user(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_random_app(project)
 
-@pick_method
+@pick_method("First item on list for random user")
 def pick_specific_from_random_user(project):
     """Picks the smallest bug in the smallest app from a random user"""
     for user in project.random_users:
@@ -214,7 +156,7 @@ def pick_specific_from_random_user(project):
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_random_app(project)
 
-@pick_method
+@pick_method("Random feature from random user")
 def pick_random_from_random_user(project):
     """Picks a random bug from a random app from a random user"""
     for user in project.random_users:
@@ -222,7 +164,7 @@ def pick_random_from_random_user(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_random_app(project)
 
-@pick_method
+@pick_method("Easiest feature")
 def pick_specific_from_easiest_app(project):
     """Picks the smallest bug from the smallest app with the fewest bugs remaining"""
     easy_apps = project.easiest_apps()
@@ -231,7 +173,7 @@ def pick_specific_from_easiest_app(project):
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project) 
 
-@pick_method
+@pick_method("Random item among easiest features")
 def pick_random_from_easiest_app(project):
     """Picks a random bug from a random app with the fewest bugs remaining"""
     easy_apps = project.easiest_apps()
@@ -240,7 +182,7 @@ def pick_random_from_easiest_app(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
-@pick_method
+@pick_method("Satisfy arbitrary user first")
 def pick_specific_from_easiest_user(project):
     easy_users = project.easiest_users()
     if easy_users:
@@ -249,7 +191,7 @@ def pick_specific_from_easiest_user(project):
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_easiest_app(project) 
 
-@pick_method
+@pick_method("Random feature among almost happy users")
 def pick_random_from_easiest_user(project):
     easy_users = project.easiest_users()
     if easy_users:
@@ -258,37 +200,26 @@ def pick_random_from_easiest_user(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_easiest_app(project)
 
-@pick_method
+@pick_method("Most common item among features")
 def pick_specific_from_most_common_by_feature(project):
     """Picks the bug that is the most common among all the unfinished features"""
     return next(project.bugs_by_popularity_in_apps)
 
-@pick_method
+@pick_method("Most popular feature")
 def pick_specific_from_most_popular_app(project):
     """Picks a specific bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
         return min(project.apps[app] - project.solved_bugs)
     return pick_specific_from_all_bugs(project)
 
-@pick_method
+@pick_method("Random item from most popular feature")
 def pick_random_from_most_popular_app(project):
     """Picks a random bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
-@pick_method
-def pick_random_from_easiest_bugs(project):
-    easiest_difficulty = None
-    for bug, difficulty in project.bug_difficulty.items():
-        if 0 < difficulty and (easiest_difficulty is None or difficulty < easiest_difficulty):
-            candidates = {bug}
-            easiest_difficulty = difficulty
-        elif 0 < difficulty == easiest_difficulty:
-            candidates.add(bug)
-    return random.choice(tuple(candidates))
-
-@pick_method
+@pick_method("Easiest work item (first in list)")
 def pick_specific_from_easiest_bugs(project):
     easiest_difficulty = None
     for bug, difficulty in project.bug_difficulty.items():
@@ -298,6 +229,17 @@ def pick_specific_from_easiest_bugs(project):
             easiest_difficulty = difficulty
             easiest_bug = bug
     return easiest_bug
+
+@pick_method("Easiest work item (random choice)")
+def pick_random_from_easiest_bugs(project):
+    easiest_difficulty = None
+    for bug, difficulty in project.bug_difficulty.items():
+        if 0 < difficulty and (easiest_difficulty is None or difficulty < easiest_difficulty):
+            candidates = {bug}
+            easiest_difficulty = difficulty
+        elif 0 < difficulty == easiest_difficulty:
+            candidates.add(bug)
+    return random.choice(tuple(candidates))
 
 ###
 ### Generators and helper functions for pick methods
@@ -342,8 +284,40 @@ def apps_by_popularity_in_users_generator(users: tuple, solved_apps: set):
         while app not in solved_apps: yield app
 
 ###
-### Project class
+### App and User Setup
 ###
+
+def probability_list_from_zipfs_law(size: int) -> list:
+    """Returns a list of floats from 0 to 1 based on a Zipfian distribution"""
+    item_probability = [1.0/sqrt(x+1) for x in range(size)]
+    random.shuffle(item_probability) # Prevent "smallest number" from implying "more likely"
+    return item_probability
+
+def set_from_fixed_probabilities(probability: list) -> frozenset:
+    """Returns a set of numbers by randomly testing to include each one based on probability."""
+    return frozenset(item for (item, chance) in enumerate(probability) if random.uniform(0,1) <= chance)
+
+def frequency_list_from_pareto_distribution(size: int) -> list:
+    """Returns a set of relative probabilities based on a pareto distribution"""
+    return [random.paretovariate(2.2) for x in range(size)]
+
+def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False) -> frozenset:
+    """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
+    twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
+    """
+    assert quantity <= len(frequency)
+    if quantity == 0:
+        return frozenset()
+    if not mutate_list:
+        frequency = frequency.copy() 
+    length_of_ruler = sum(frequency)
+    point_on_line = random.uniform(0,length_of_ruler)
+    for (index, length_of_segment) in enumerate(frequency):
+        point_on_line -= length_of_segment
+        if point_on_line < 0:
+            frequency[index] = 0
+            return frozenset({index} | set_from_relative_frequencies(frequency, quantity - 1, True))
+    assert False
 
 class Project:
     setup_functions()
@@ -420,6 +394,7 @@ class Project:
     def choose_bug(self):
         """Finds a bug to work on and sets bug_in_progress to it"""
         if self.bug_in_progress is not None and FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
+            # TODO: should also be in here if the pick method always returns the same, so we don't recompute
             return
         else:
             pick_method = self.method_selector()
@@ -530,11 +505,6 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             bugs_remaining = False
 
     day += 1 
-
-
-
-# TODO: make optional command line output
-if DEBUG: print("Available pick methods:", " ".join(f.__name__ for f in pick_methods))
 
 print("Time spent running simulation:", (time.clock() - timespent))
 

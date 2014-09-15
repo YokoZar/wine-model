@@ -28,6 +28,7 @@ CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Comparing Development Models"
 CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
+RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 PROJECT_NAMES = ["pick_specific_from_all_bugs", "pick_random_from_all_bugs"]

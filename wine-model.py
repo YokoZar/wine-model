@@ -500,12 +500,12 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         project.work_bug()
 
         if len(project.solved_bugs) == number_of_bugs:
-            print("100% complete at time: ", day + 1)
             if enable_log: append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
             bugs_remaining = False
 
     day += 1 
 
+print("100% complete at time:", day)
 print("Time spent running simulation:", (time.clock() - timespent))
 
 for project in projects:

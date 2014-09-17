@@ -303,21 +303,24 @@ def frequency_list_from_pareto_distribution(size: int) -> list:
 
 def set_from_relative_frequencies(frequency: list, quantity: int, mutate_list=False) -> frozenset:
     """Returns a set of quantity numbers based on the frequency list. An item of frequency 2 is
-    twice as likely to appear as an item of frequency 1, 4 is 4 times as likely, and so on.
+    twice as likely to be picked on each selection as an item of frequency 1, 4 is 4 times as likely,
+    and so on.
     """
     assert quantity <= len(frequency)
-    if quantity == 0:
-        return frozenset()
-    if not mutate_list:
-        frequency = frequency.copy() 
-    length_of_ruler = sum(frequency)
-    point_on_line = random.uniform(0,length_of_ruler)
-    for (index, length_of_segment) in enumerate(frequency):
-        point_on_line -= length_of_segment
-        if point_on_line < 0:
-            frequency[index] = 0
-            return frozenset({index} | set_from_relative_frequencies(frequency, quantity - 1, True))
-    assert False
+    frequency=frequency.copy()
+    results = []
+    for x in range(quantity):
+        length_of_ruler = sum(frequency)
+        point_on_line = random.uniform(0,length_of_ruler)
+        for (index, length_of_segment) in enumerate(frequency):
+            point_on_line -= length_of_segment
+            if point_on_line < 0:
+                results.append(index)
+                frequency[index] = 0
+                break
+        else:
+            assert False
+    return frozenset(results)
 
 class Project:
     setup_functions()

@@ -91,10 +91,10 @@ def rotate_strategy(): # TODO: convert this into a simple pick_method
 
 pick_methods = {}
 def pick_method(name):
-    def run_pick_method(function):
+    def setup_pick_method(function):
         pick_methods[name] = function
         return function
-    return run_pick_method
+    return setup_pick_method
 
 @pick_method("First item on list")
 def pick_specific_from_all_bugs(project):

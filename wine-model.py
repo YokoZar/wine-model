@@ -288,7 +288,7 @@ def apps_by_popularity_in_users_generator(users: tuple, solved_apps: set):
 
 def probability_list_from_zipfs_law(size: int) -> list:
     """Returns a list of floats from 0 to 1 based on a Zipfian distribution"""
-    item_probability = [1.0/sqrt(x+1) for x in range(size)]
+    item_probability = [1.0/(x+1)**.33 for x in range(size)]
     random.shuffle(item_probability) # Prevent "smallest number" from implying "more likely"
     return item_probability
 

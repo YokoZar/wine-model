@@ -9,14 +9,15 @@
 # Hosted on GitHub here: https://github.com/YokoZar/wine-model
 #
 
+import csv
+import matplotlib.pyplot as plt
+import pandas
 import random
 import time
+from collections import Counter
+from functools import partial
 from math import sqrt
 from operator import itemgetter
-from functools import partial
-from collections import Counter
-import pandas
-import matplotlib.pyplot as plt
 
 DEBUG = False
 LOGFILE = 'wine-model-results.csv'
@@ -386,12 +387,9 @@ class Project:
         smallest_app_count = min(unsolved, key=itemgetter(1), default=(0,0))[1]
         return tuple(user for user, apps in unsolved if apps == smallest_app_count)
 
-    def make_log_item(self) -> str:
-        log = str(self.name) + ", "
-        log += str(day) + ", "
-        log += str(len(self.solved_bugs)/number_of_bugs) + ", "
-        log += str(self.working_app_count/number_of_apps) + ", "
-        log += str(self.happy_user_count/number_of_users) + "\n"
+    def make_log_item(self) -> list:
+        log = [self.name, day, len(self.solved_bugs)/number_of_bugs,
+               self.working_app_count/number_of_apps, self.happy_user_count/number_of_users]
         return log
 
     def choose_bug(self):
@@ -439,10 +437,11 @@ class Project:
 ### Helper functions for running simulation
 ###
 
-def append_to_log(entry: str):
+def append_to_log(entry: list):
     assert enable_log
-    with open(LOGFILE, 'a') as logfile:
-        logfile.write(entry)
+    with open(LOGFILE, 'a', newline='') as logfile:
+        logger = csv.writer(logfile)
+        logger.writerow(entry)
 
 def setup():
     """Creates apps and users and erases the log"""
@@ -465,7 +464,8 @@ day = 0
 
 timespent = time.clock()
 
-if enable_log: append_to_log("Strategy, Time, % Work Items Completed, % Features Completed, % Happy Users \n")
+if enable_log:
+    append_to_log(["Strategy","Time","% Work Items Completed","% Features Completed","% Happy Users"])
 chart_data = {}
 for project in projects:
     name = project.name
@@ -493,7 +493,8 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             print("%i%% complete at time: " % (show_at_percent_done), day)
             show_at_percent_done += 10
 
-        if enable_log: append_to_log(project.make_log_item())
+        if enable_log:
+            append_to_log(project.make_log_item())
         if CHART_TASKS_COMPLETE:
             chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
         chart_data[project.name + ": " + CHART_APPS].append(project.working_app_count*100/number_of_apps)
@@ -503,7 +504,8 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         project.work_bug()
 
         if len(project.solved_bugs) == number_of_bugs:
-            if enable_log: append_to_log("%s, %i, 1.0, 1.0, 1.0 \n" % (project.name, day + 1))
+            if enable_log:
+                append_to_log([project.name, day + 1, 1.0, 1.0, 1.0])
             bugs_remaining = False
 
     day += 1 

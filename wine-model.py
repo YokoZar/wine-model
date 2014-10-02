@@ -42,9 +42,8 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
-# Adjust these to different names based on the strategy desired (see pick_methods below)
-PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate strategies"]
-# TODO: rename STRATEGY_NAMES
+# For additional options, see pick_methods below
+STRATEGIES_TO_TEST = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate strategies"]
 
 # TODO: document!
 def setup_functions():
@@ -448,8 +447,8 @@ def setup():
     if enable_log: # Erase logfile
         with open(LOGFILE, 'w'): pass
 
-    assert PROJECT_NAMES
-    projects = [Project(name) for name in PROJECT_NAMES]
+    assert STRATEGIES_TO_TEST
+    projects = [Project(strategy) for strategy in STRATEGIES_TO_TEST]
 
 ###
 ### Simulation begins here

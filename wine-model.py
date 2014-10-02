@@ -33,7 +33,7 @@ RANDOM_SEED = False # Set to a constant to directly compare strategies from one 
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
 # Adjust these to different names based on the strategy desired (see pick methods below)
-PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy arbitrary user first", "Rotate reasonably"]
+PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate reasonably"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -74,14 +74,12 @@ def strategy_chooser(name: str) -> "function":
 def rotate_strategy(): # TODO: convert this into a simple pick_method
     """Returns a pick method based on the day"""
     # You can select the strategy based on the day
-    if day < 300: # eg do nothing but this strategy for the first 300 days
+    if day <= total_time_to_solve / 20: # eg do nothing but this strategy for the first 5%
         return pick_specific_from_most_common_by_feature
-    # "Realistic" model: rotate through different reasonable pick methods
-    if day %5 == 4: return pick_random_from_most_popular_app
-    if day %5 == 3: return pick_random_from_random_user
-    if day %5 == 2: return pick_random_from_easiest_app
-    if day %5 == 1: return pick_random_from_easiest_bugs
-    if day %5 == 0: return pick_random_from_easiest_user
+    elif day <= total_time_to_solve / 10:
+        return pick_specific_from_easiest_user # MVP! Early Adopters!
+    else:
+        return random.choice([pick_specific_from_most_common_by_feature, pick_specific_from_easiest_user])
 
 ### ----------------------------------------------------------------------------
 ###  You shouldn't need to modify anything below here to just run a simulation
@@ -183,7 +181,7 @@ def pick_random_from_easiest_app(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project)
 
-@pick_method("Satisfy arbitrary user first")
+@pick_method("Satisfy easiest user first")
 def pick_specific_from_easiest_user(project):
     easy_users = project.easiest_users()
     if easy_users:

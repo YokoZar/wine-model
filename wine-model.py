@@ -32,8 +32,6 @@ CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
-# Adjust these to different names based on the strategy desired (see pick methods below)
-PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate reasonably"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 10
@@ -44,6 +42,9 @@ MAX_APPS_PER_USER = 10
 
 # Note that internally "features" == "apps" and "work items" == "bugs"
 number_of_bugs, number_of_apps, number_of_users = 10000, 2500, 5000
+# Adjust these to different names based on the strategy desired (see pick_methods below)
+PROJECT_NAMES = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate strategies"]
+# TODO: rename STRATEGY_NAMES
 
 # TODO: document!
 def setup_functions():
@@ -62,28 +63,15 @@ if RANDOM_SEED:
 ### Strategy -- meant to be modified by user
 ###
 
+# TODO: just get rid of this and use pick method directly
 def strategy_chooser(name: str) -> "function":
     """Returns a function that returns a pick method based on the current state"""
     x = pick_methods.get(name)
     if x:
         return lambda: x
-    if name == "Rotate reasonably": return rotate_strategy
     
     raise ValueError("Unrecognized strategy: %s" % name)
 
-def rotate_strategy(): # TODO: convert this into a simple pick_method
-    """Returns a pick method based on the day"""
-    # You can select the strategy based on the day
-    if day <= total_time_to_solve / 20: # eg do nothing but this strategy for the first 5%
-        return pick_specific_from_most_common_by_feature
-    elif day <= total_time_to_solve / 10:
-        return pick_specific_from_easiest_user # MVP! Early Adopters!
-    else:
-        return random.choice([pick_specific_from_most_common_by_feature, pick_specific_from_easiest_user])
-
-### ----------------------------------------------------------------------------
-###  You shouldn't need to modify anything below here to just run a simulation
-### ----------------------------------------------------------------------------
 ###
 ### Pick Methods
 ###
@@ -94,6 +82,18 @@ def pick_method(name):
         pick_methods[name] = function
         return function
     return setup_pick_method
+
+@pick_method("Rotate strategies")
+def rotate_strategy(project):
+    """Returns a pick method based on the day"""
+    if day <= total_time_to_solve / 20: # Do nothing but this strategy for the first 5%
+        return pick_specific_from_most_common_by_feature(project)
+    elif day <= total_time_to_solve / 10:
+        return pick_specific_from_easiest_user(project) # MVP! Early Adopters!
+    elif day % 2 == 1:
+        return pick_specific_from_most_common_by_feature(project)
+    else:
+        return pick_specific_from_easiest_user(project)
 
 @pick_method("First item on list")
 def pick_specific_from_all_bugs(project):

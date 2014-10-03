@@ -28,7 +28,7 @@ CHART_USERS = "Happy Users"
 CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Comparing Development Models"
-CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
+CHART_TASKS_COMPLETE = False # This is often not very interesting as it's usually just the same line
 CHART_FEATURES_COMPLETE = True
 CHART_HAPPY_USERS = True
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
@@ -56,8 +56,8 @@ def setup_functions():
     app_frequency_function = partial(frequency_list_from_pareto_distribution, number_of_apps)
     apps_per_user_function = partial(random.randint, MIN_APPS_PER_USER, MAX_APPS_PER_USER)
 
-enable_log = False
-if RANDOM_SEED: 
+enable_log = False # Set to True to create a csv file with the simulation data
+if RANDOM_SEED:
     random.seed(a=RANDOM_SEED)
 
 ###

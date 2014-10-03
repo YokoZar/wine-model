@@ -29,6 +29,8 @@ CHART_LABEL_X = "Time Invested"
 CHART_LABEL_Y = "Percentage"
 CHART_TITLE = "Comparing Development Models"
 CHART_TASKS_COMPLETE = False # This is often not helpful when comparing
+CHART_FEATURES_COMPLETE = True
+CHART_HAPPY_USERS = True
 RANDOM_SEED = False # Set to a constant to directly compare strategies from one run to the next
 FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 
@@ -496,8 +498,10 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             append_to_log(project.make_log_item())
         if CHART_TASKS_COMPLETE:
             chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
-        chart_data[project.name + ": " + CHART_APPS].append(project.working_app_count*100/number_of_apps)
-        chart_data[project.name + ": " + CHART_USERS].append(project.happy_user_count*100/number_of_users)
+        if CHART_FEATURES_COMPLETE:
+            chart_data[project.name + ": " + CHART_APPS].append(project.working_app_count*100/number_of_apps)
+        if CHART_HAPPY_USERS:
+            chart_data[project.name + ": " + CHART_USERS].append(project.happy_user_count*100/number_of_users)
 
         project.choose_bug()
         project.work_bug()

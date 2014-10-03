@@ -201,7 +201,9 @@ def pick_random_from_easiest_user(project):
 @pick_method("Most common item among features")
 def pick_specific_from_most_common_by_feature(project):
     """Picks the bug that is the most common among all the unfinished features"""
-    return next(project.bugs_by_popularity_in_apps)
+    for bug in project.bugs_by_popularity_in_apps:
+        return bug
+    return pick_specific_from_all_bugs(project) # For bugs not in any app
 
 @pick_method("Most popular feature")
 def pick_specific_from_most_popular_app(project):

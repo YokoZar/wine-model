@@ -24,8 +24,8 @@ upwards.  Initially, the project mostly gains happy users as individuals one at 
 relatively distinct feature sets.  Eventually, however, there is enough "collateral damage" as work
 on one task inadvertently satisfies diverse groups of users who were otherwise almost happy.
 
-The script simultanteously tests two different strategies for the same project so that they can be
-directly compared.
+The script simultanteously tests multiple strategies for the same set of initial conditions so that
+the strategies can be directly compared.
 
 Usage:
 ==========
@@ -33,12 +33,13 @@ Usage:
 To run the script, just put the wine-model.py file in a folder and run.  It depends on the pandas
 library, which should be available using pip3 if not otherwise available.
 
-The top portion of the script is meant to be played with and modified by the user.  In the future
-this could be done with configuration files and command line switches if there is sufficient user
-demand.
+The script is meant to be played with and modified by the user.  As a start, I would recommend
+skimming the pick_methods and choosing which ones to use.  You can also try modifying the 
+"rotate strategies" method, or writing your own.  Tweaking the initial setup parameters (such as
+the number of work items) is straightforward.
 
-It will display some progress in the terminal, and then generate two files: wine-model-results.svg
-and wine-model-results.csv.  If you want to make your own chart, you can feed the csv into a
+It will display some progress in the terminal, and then generate a chart file: wine-model-results.svg.
+If you want to make your own chart, you can enable logging and feed wine-model-results.csv into a
 spreadsheet program.
  
 Be aware, the program can take some time to run.  The default settings should take a few minutes.
@@ -47,7 +48,8 @@ Known shortcomings:
 ==========
 
  * The landscape does not change during the course of the model: users do not change what they want,
-   new work items do not become possible, features do not break, and so on.
+   new work items do not become possible, features do not break, and so on.  Speed of development
+   also remains constant.
  * We do not model partially working features nor partially happy users.  You can somewhat adjust
    for this by simply modelling more features and users, as some users will become supersets of 
    others.
@@ -66,5 +68,5 @@ Known shortcomings:
    share and discuss it, and I will do my best to implement it for you.
  * We don't model "dirty fixes", ie solutions to bugs that increase the time to perfection (perhaps 
    by adding new bugs or more difficulty to existing bugs).  These might be thought of as ugly hacks
-   to the code that somehow manage to get an app working, which in Wine's case Alexandre opposes.
+   to the code that somehow manage to get a feature working, which in Wine's case aren't accepted.
 

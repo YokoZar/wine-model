@@ -61,19 +61,6 @@ if RANDOM_SEED:
     random.seed(a=RANDOM_SEED)
 
 ###
-### Strategy -- meant to be modified by user
-###
-
-# TODO: just get rid of this and use pick method directly
-def strategy_chooser(name: str) -> "function":
-    """Returns a function that returns a pick method based on the current state"""
-    x = pick_methods.get(name)
-    if x:
-        return lambda: x
-    
-    raise ValueError("Unrecognized strategy: %s" % name)
-
-###
 ### Pick Methods
 ###
 
@@ -354,7 +341,7 @@ class Project:
         self.solved_apps = set()
         self.solved_users = set()
         self.name = name
-        self.method_selector = strategy_chooser(name)
+        self.pick_method = pick_methods[name]
 
         # Class-wide generators to preserve state
         self.bugs_by_number = goals_by_number_generator(number_of_bugs, self.solved_bugs)
@@ -396,11 +383,12 @@ class Project:
     def choose_bug(self):
         """Finds a bug to work on and sets bug_in_progress to it"""
         if self.bug_in_progress is not None and FINISH_TASKS_BEFORE_CHANGING_STRATEGY:
-            # TODO: should also be in here if the pick method always returns the same, so we don't recompute
+            # TODO: should also be here if the pick method always returns the same value, so we don't recompute
+            #       an example would be the various "pick specific_from_specific".
+            #       possibly achieved by adding a "deterministic" decorator to the pick_method.
             return
         else:
-            pick_method = self.method_selector()
-            self.bug_in_progress = pick_method(self)
+            self.bug_in_progress = self.pick_method(self)
             assert self.bug_in_progress not in self.solved_bugs
 
     def work_bug(self):

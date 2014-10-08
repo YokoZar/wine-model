@@ -42,7 +42,7 @@ FINISH_TASKS_BEFORE_CHANGING_STRATEGY = True
 number_of_bugs, number_of_apps, number_of_users = 25000, 2500, 5000
 
 # For additional options, see pick_methods below
-STRATEGIES_TO_TEST = ["Most popular feature", "Easiest feature", "Satisfy easiest user first", "Rotate strategies"]
+STRATEGIES_TO_TEST = ["Most popular feature first", "Easiest feature first", "Pick an arbitrary user and make them happy"]
 
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 5
@@ -119,7 +119,7 @@ def pick_random_from_specific_app(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_all_bugs(project) 
 
-@pick_method("First user on list")
+@pick_method("Pick an arbitrary user and make them happy")
 def pick_specific_from_specific_user(project):
     """Picks the smallest bug from the smallest app from the smallest user"""
     for user in project.users_by_number:
@@ -151,7 +151,7 @@ def pick_random_from_random_user(project):
         return random.choice(tuple(project.apps[app] - project.solved_bugs))
     return pick_random_from_random_app(project)
 
-@pick_method("Easiest feature")
+@pick_method("Easiest feature first")
 def pick_specific_from_easiest_app(project):
     """Picks the smallest bug from the smallest app with the fewest bugs remaining"""
     easy_apps = project.easiest_apps()
@@ -194,7 +194,7 @@ def pick_specific_from_most_common_by_feature(project):
         return bug
     return pick_specific_from_all_bugs(project) # For bugs not in any app
 
-@pick_method("Most popular feature")
+@pick_method("Most popular feature first")
 def pick_specific_from_most_popular_app(project):
     """Picks a specific bug from the most popular app"""
     for app in (project.apps_by_popularity_in_users):

@@ -12,8 +12,6 @@ Document:
 
 Features:
  - take arguments from command line instead of defining up top
- - compare two strategies against one another with same initial data
-   - Requires refactor of generators etc to use a project class
  - Consider a parameter for zipf's other than 0.5 == sqrt
  - Implement pareto-distribution probability (80/20 rule) for apps/bugs
 

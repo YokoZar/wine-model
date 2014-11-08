@@ -494,6 +494,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         project.choose_bug()
         project.work_bug()
 
+        # TODO: this breaks the "rotate evenly" pattern for log entries at the end
         if len(project.solved_bugs) == number_of_bugs:
             if enable_log:
                 append_to_log([project.name, day + 1, 1.0, 1.0, 1.0])

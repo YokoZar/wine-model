@@ -487,6 +487,11 @@ bugs_remaining = True
 
 while(bugs_remaining): # TODO: just use the inner for loop to cycle over projects
     for project in projects:
+        if len(project.solved_bugs) == number_of_bugs:
+            append_to_log(lambda: [project.name, day + 1, 1.0, 1.0, 1.0])
+            bugs_remaining = False
+            continue
+
         if not project.reported_first_app and project.working_app_count >= 1:
             print("First feature working for", project.name, "at time", day)
             project.reported_first_app = True
@@ -516,12 +521,7 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
         project.choose_bug()
         project.work_bug()
 
-        # TODO: this breaks the "rotate evenly" pattern for log entries at the end
-        if len(project.solved_bugs) == number_of_bugs:
-            append_to_log(lambda: [project.name, day + 1, 1.0, 1.0, 1.0])
-            bugs_remaining = False
-
-    day += 1 
+    day += 1
 
 append_to_log(lambda: END_OF_LOG_QUEUE)
 print("100% complete at time:", day)

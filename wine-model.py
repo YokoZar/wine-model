@@ -47,7 +47,7 @@ STRATEGIES_TO_TEST = ["Most popular feature first", "Easiest feature first", "Pi
 MIN_APPS_PER_USER = 1
 MAX_APPS_PER_USER = 5
 
-# TODO: document!
+# The functions defined here establish how the simulation is set up
 def setup_functions():
     global bug_difficulty_function, bug_probability_function 
     global app_frequency_function, apps_per_user_function

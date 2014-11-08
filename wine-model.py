@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 import pandas
 import random
 import time
-from collections import Counter
+import threading
+from collections import Counter, deque
 from functools import partial
 from math import sqrt
 from operator import itemgetter
@@ -426,11 +427,31 @@ class Project:
 ### Helper functions for running simulation
 ###
 
-def append_to_log(entry: list):
-    assert enable_log
+logging_queue = deque()
+END_OF_LOG_QUEUE = []
+
+# Executes the supplied function only if we will actually log it -- otherwise, does nothing
+# This saves the caller from wastefully computing a log entry that won't be written
+def append_to_log(entry_function: lambda: list):
+    if enable_log:
+        logging_queue.append(entry_function())
+
+# Function for a separate logging thread
+def write_logging_queue_to_log():
+    if not enable_log:
+        return
     with open(LOGFILE, 'a', newline='') as logfile:
         logger = csv.writer(logfile)
-        logger.writerow(entry)
+        while True:
+            try:
+                entry = logging_queue.popleft()
+            except IndexError:
+                time.sleep(0.5) # TODO: consider threading.Event flag for nothing_to_log
+                continue
+            if entry is END_OF_LOG_QUEUE:
+                return
+            logger.writerow(entry)
+
 
 def setup():
     """Creates apps and users and erases the log"""
@@ -448,13 +469,14 @@ def setup():
 
 print("Modeling with", number_of_bugs, "bugs,", number_of_apps, "apps, and", number_of_users, "users")
 setup()
+log_writer = threading.Thread(target=write_logging_queue_to_log, name="Log Writing Thread")
+log_writer.start()
 
 day = 0
 
 timespent = time.clock()
 
-if enable_log:
-    append_to_log(["Strategy","Time","% Work Items Completed","% Features Completed","% Happy Users"])
+append_to_log(lambda: ["Strategy","Time","% Work Items Completed","% Features Completed","% Happy Users"])
 chart_data = {}
 for project in projects:
     name = project.name
@@ -482,8 +504,8 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
             print("%i%% complete at time: " % (show_at_percent_done), day)
             show_at_percent_done += 10
 
-        if enable_log:
-            append_to_log(project.make_log_item())
+        append_to_log(project.make_log_item)
+
         if CHART_TASKS_COMPLETE:
             chart_data[project.name + ": " + CHART_BUGS].append(len(project.solved_bugs)*100/number_of_bugs)
         if CHART_FEATURES_COMPLETE:
@@ -496,12 +518,12 @@ while(bugs_remaining): # TODO: just use the inner for loop to cycle over project
 
         # TODO: this breaks the "rotate evenly" pattern for log entries at the end
         if len(project.solved_bugs) == number_of_bugs:
-            if enable_log:
-                append_to_log([project.name, day + 1, 1.0, 1.0, 1.0])
+            append_to_log(lambda: [project.name, day + 1, 1.0, 1.0, 1.0])
             bugs_remaining = False
 
     day += 1 
 
+append_to_log(lambda: END_OF_LOG_QUEUE)
 print("100% complete at time:", day)
 print("Time spent running simulation:", (time.clock() - timespent))
 
@@ -522,3 +544,11 @@ plt.title(CHART_TITLE)
 plt.ylabel(CHART_LABEL_Y)
 plt.xlabel(CHART_LABEL_X)
 plt.savefig(CHARTFILE)
+
+if log_writer.is_alive():
+    print("Waiting for logging to finish...", end="")
+    while log_writer.is_alive():
+        time.sleep(0.1)
+        print(".", end="")
+    print()
+
